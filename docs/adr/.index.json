@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "lastUpdated": "2026-09-20T11:08:22.921Z",
+  "records": [
+    {
+      "id": "ADR-001",
+      "title": "Import-graph-only VSA detection with a two-mode gate",
+      "date": "2026-09-20",
+      "file": "2026-09-20-ADR-001-import-graph-only-vsa-detection.md",
+      "constraint": "Import-graph-only VSA detection with a two-mode gate: ",
+      "status": "active"
+    },
+    {
+      "id": "ADR-002",
+      "title": "Implementace v architecture-watcher",
+      "date": "2026-09-20 11:54:36",
+      "file": "2026-09-20-ADR-002-implementace-v-architecture-watcher.md",
+      "constraint": "Implementace v architecture-watcher: Take a look at how my plugins, for example the translate plugin, implement this, and do the same in our architecture watcher.",
+      "status": "active"
+    },
+    {
+      "id": "ADR-003",
+      "title": "1. Zkontrolujte, které soubory byly upraveny/přidány v architecture-wa",
+      "date": "2026-09-20 11:58:18",
+      "file": "2026-09-20-ADR-003-1-zkontrolujte-kter-soubory-byly-upravenypidny-v-a.md",
+      "constraint": "1. Zkontrolujte, které soubory byly upraveny/přidány v architecture-wa: <session_state source=\"compaction\"><session_mode>implement</session_mode></session_state> V této konverzační relaci však nejsou registrovány žádné aktivní háčky nástrojů MCP (Model Context Protocol)",
+      "status": "active"
+    },
+    {
+      "id": "ADR-004",
+      "title": "Architectural Workaround & Constraint",
+      "date": "2026-09-20 13:08:22",
+      "file": "2026-09-20-ADR-004-architectural-workaround-constraint.md",
+      "constraint": "Architectural Workaround & Constraint: Architectural Workaround & Constraint",
+      "status": "active"
+    }
+  ]
+}
