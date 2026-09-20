@@ -8,6 +8,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { ALL_SOURCE_EXTENSIONS } from "./languages.js";
 import { readTextSafe } from "./paths.js";
 import type { PublicEntryMode, Severity, Mode, WatcherConfig } from "./types.js";
 
@@ -35,8 +36,8 @@ export const DEFAULT_CONFIG: WatcherConfig = {
     "common",
   ],
   aliases: {},
-  sourceExtensions: [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"],
-  publicEntries: ["index", "public", "api"],
+  sourceExtensions: [...ALL_SOURCE_EXTENSIONS],
+  publicEntries: ["index", "public", "api", "__init__"],
   publicEntryMode: "entry-only",
   internalsDirNames: ["internal", "internals", "impl", "lib", "utils", "helpers", "_"],
   maxSliceFanOut: 4,

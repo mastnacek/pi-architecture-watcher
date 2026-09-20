@@ -8,6 +8,7 @@
 
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { LANGUAGE_EXTENSIONS, type SourceLanguage } from "./languages.js";
 import type { ImportEdge, WatcherConfig } from "./types.js";
 
 /** Convert a platform path to POSIX separators. */
@@ -181,18 +182,37 @@ function probeCandidates(base: string, extensions: readonly string[]): string[] 
 /**
  * Resolve an import specifier to an existing absolute file.
  *
- * Handles relative specifiers, configured aliases and extension probing.
- * Bare package specifiers (node_modules) return `null` — they are never slices.
+ * Handles relative specifiers, configured aliases and extension probing. Bare
+ * package specifiers (node_modules) return `null` — they are never slices.
+ * `language` selects the module syntax: dotted `a.b.C` for Python/JVM,
+ * `crate::`/`self::`/`super::` for Rust and module dirs for Go.
  */
 export function resolveImport(
   edge: ImportEdge,
   fromFileAbs: string,
   projectRoot: string,
   config: WatcherConfig,
+  language: SourceLanguage = "typescript",
 ): string | null {
   const spec = edge.specifier;
   if (!spec) return null;
   if (spec.startsWith("node:")) return null;
+
+  if (language === "python" && spec.startsWith(".")) {
+    return resolvePythonRelative(spec, fromFileAbs, projectRoot);
+  }
+  if (language === "rust" && /^(crate|self|super)(::|$)/.test(spec)) {
+    return resolveRustModule(spec, fromFileAbs, projectRoot);
+  }
+  if (language === "java" || language === "kotlin") {
+    return resolveJvmModule(spec, projectRoot, config, language);
+  }
+  if (language === "python") {
+    return resolveDottedModule(spec, [projectRoot, join(projectRoot, "src")], [".py", ".pyi"], ["__init__"], 2);
+  }
+  if (language === "go") {
+    return resolveGoModule(spec, projectRoot);
+  }
 
   let base: string | null = null;
 
@@ -219,4 +239,133 @@ export function resolveImport(
     if (isFile(candidate)) return candidate;
   }
   return null;
+}
+
+/** Probe `base` and its directory index files for `language`. */
+function probeLanguage(
+  base: string,
+  extensions: readonly string[],
+  indexNames: readonly string[],
+  dropTrailing = 0,
+): string | null {
+  const segments = base.split("/");
+  for (let drop = 0; drop <= dropTrailing && drop < segments.length; drop += 1) {
+    const trimmed = segments.slice(0, segments.length - drop).join("/");
+    if (trimmed.length === 0) continue;
+    for (const ext of extensions) {
+      if (isFile(`${trimmed}${ext}`)) return `${trimmed}${ext}`;
+    }
+    for (const ext of extensions) {
+      for (const name of indexNames) {
+        const candidate = join(trimmed, `${name}${ext}`);
+        if (isFile(candidate)) return candidate;
+      }
+    }
+  }
+  return null;
+}
+
+/** `from .pkg.mod import x` -> `./pkg/mod` relative to the importing file. */
+function resolvePythonRelative(spec: string, fromFileAbs: string, projectRoot: string): string | null {
+  const base = resolve(dirname(fromFileAbs), spec);
+  if (!isSubPath(projectRoot, base)) return null;
+  return probeLanguage(toPosix(base), LANGUAGE_EXTENSIONS.python, ["__init__"], 1);
+}
+
+/** Dotted module (`a.b.c`) under one of `roots`, trying trailing drops. */
+function resolveDottedModule(
+  spec: string,
+  roots: readonly string[],
+  extensions: readonly string[],
+  indexNames: readonly string[],
+  dropTrailing: number,
+): string | null {
+  if (spec.startsWith(".") || spec.includes(":")) return null;
+  const parts = spec.split(".");
+  if (parts.length === 0) return null;
+  for (const root of roots) {
+    const base = join(root, ...parts);
+    const found = probeLanguage(toPosix(base), extensions, indexNames, dropTrailing);
+    if (found) return found;
+  }
+  return null;
+}
+
+/** JVM imports are dotted package paths under the usual source roots. */
+function resolveJvmModule(
+  spec: string,
+  projectRoot: string,
+  config: WatcherConfig,
+  language: SourceLanguage,
+): string | null {
+  for (const [prefix, target] of Object.entries(config.aliases)) {
+    if (spec === prefix || spec.startsWith(prefix)) {
+      const rest = spec.slice(prefix.length).replace(/^\//, "").split(".").join("/");
+      const base = resolve(projectRoot, target, rest);
+      return probeLanguage(toPosix(base), LANGUAGE_EXTENSIONS[language], [], 2);
+    }
+  }
+  const roots = [
+    join(projectRoot, "src", "main", "java"),
+    join(projectRoot, "src", "main", "kotlin"),
+    join(projectRoot, "src", "main"),
+    join(projectRoot, "src"),
+    projectRoot,
+  ];
+  return resolveDottedModule(spec, roots, LANGUAGE_EXTENSIONS[language], [], 2);
+}
+
+/** Rust `crate::` / `self::` / `super::` paths. */
+function resolveRustModule(spec: string, fromFileAbs: string, projectRoot: string): string | null {
+  const parts = spec.split("::").filter((p) => p.length > 0);
+  if (parts.length === 0) return null;
+  const exts = LANGUAGE_EXTENSIONS.rust;
+
+  if (parts[0] === "crate") {
+    const base = join(projectRoot, "src", ...parts.slice(1));
+    const found = probeLanguage(toPosix(base), exts, ["mod"], 2)
+      ?? probeLanguage(toPosix(join(projectRoot, ...parts.slice(1))), exts, ["mod"], 2);
+    return found;
+  }
+
+  let dir = dirname(fromFileAbs);
+  let index = 0;
+  while (parts[index] === "super") {
+    dir = dirname(dir);
+    index += 1;
+  }
+  if (parts[index] === "self") index += 1;
+  const rest = parts.slice(index);
+  const base = rest.length === 0 ? dir : join(dir, ...rest);
+  if (!isSubPath(projectRoot, base)) return null;
+  return probeLanguage(toPosix(base), exts, ["mod"], 2);
+}
+
+/** Go module paths: strip the `go.mod` module prefix, then find a `.go` file. */
+function resolveGoModule(spec: string, projectRoot: string): string | null {
+  if (spec.length === 0 || spec.startsWith("internal/")) return null;
+  const module = readGoModule(projectRoot);
+  let rest = spec;
+  if (module && spec.startsWith(`${module}/`)) {
+    rest = spec.slice(module.length + 1);
+  }
+  const segments = rest.split("/").filter((s) => s.length > 0);
+  for (let i = 0; i < segments.length; i += 1) {
+    const dir = join(projectRoot, ...segments.slice(i));
+    if (!isDirectory(dir)) continue;
+    const file = listFiles(dir).find((f) => f.endsWith(".go"));
+    if (file) return join(dir, file);
+  }
+  return null;
+}
+
+function readGoModule(projectRoot: string): string | null {
+  const path = join(projectRoot, "go.mod");
+  if (!existsSync(path)) return null;
+  try {
+    const match = readFileSync(path, "utf8").match(/^\s*module\s+(\S+)/m);
+    return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
 }

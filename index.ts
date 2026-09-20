@@ -28,6 +28,7 @@ import {
   relPosix,
   resolveImport,
 } from "./src/shared/paths.js";
+import { languageOf } from "./src/shared/languages.js";
 import type {
   FileFacts,
   Report,
@@ -151,15 +152,16 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
     content: string,
   ): Report => {
     const file: SourceFile = { path: absPath, rel, content };
+    const language = languageOf(absPath);
     const facts: FileFacts = {
       file,
-      imports: scanImports(content),
+      imports: scanImports(content, language),
       slice: watcher.lookup.sliceOf(absPath),
       shared: watcher.lookup.sharedOf(absPath),
       lookup: watcher.lookup,
       config: watcher.config,
       projectRoot: watcher.lookup.root,
-      resolve: (edge) => resolveImport(edge, absPath, watcher.lookup.root, watcher.config),
+      resolve: (edge) => resolveImport(edge, absPath, watcher.lookup.root, watcher.config, language),
     };
     return classifyFile(facts);
   };

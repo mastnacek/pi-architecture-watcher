@@ -119,8 +119,8 @@ in memory), so the report describes what is about to land, not what already did.
 
 The plugin is itself written as vertical slices:
 
-- `src/shared/` — kernel: types, config, path/glob/import resolution. Deep modules: `resolveImport` and `loadConfig` hide extension probing, aliases, merge order and validation.
-- `src/slices/scan/` — deep module `scanImports(source)`: masks comments/strings/regex/templates, then extracts static, type-only, side-effect, re-export, dynamic and `require` edges.
+- `src/shared/` — kernel: types, config, languages, path/glob/import resolution. Deep modules: `resolution` (`resolveImport`) and `loadConfig` hide extension probing, aliases, merge order, validation and per-language module syntax.
+- `src/slices/scan/` — deep module `scanImports(source, language)`: masks comments/strings first, then dispatches to a per-language scanner (TypeScript/JavaScript, Python, Rust, Java/Kotlin, Go) that extracts static, type-only, side-effect, re-export, dynamic and `require`-style edges.
 - `src/slices/topology/` — deep module `buildSliceMap(root, config)` → read-only `SliceLookup`.
 - `src/slices/classify/` — a rule is `(facts) => Finding[]`; add one to the `RULES` registry.
 - `src/slices/report/` — every rendering path lives here, so `auto` advice stays consistent.
@@ -131,6 +131,7 @@ Slices never import each other; they depend only on `src/shared`, and `index.ts`
 ## Limits
 
 - Import-graph based. It does not resolve `node_modules`, `tsconfig` `paths` outside `aliases`, or non-relative monorepo links.
+- Multi-language support covers Python (`import` / `from … import`), Rust (`use` / `mod`), Java, Kotlin and Go. Resolution is heuristic by design: dotted JVM/Python modules are probed under the usual source roots with trailing-segment drops, Rust `crate::` assumes `src/`, and Go module paths are stripped using `go.mod`.
 - Cycle detection is one hop deep (`A → B`, `B → A`) — cheap and covers the common case.
 - Regex literals and template interpolation are handled heuristically; a pathological file can hide an import.
 - Zero runtime dependencies except `typebox` (tool schema).

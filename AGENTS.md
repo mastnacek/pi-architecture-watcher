@@ -1,16 +1,17 @@
 # pi-architecture-watcher — build guide
 
 Static **VSA** (Vertical Slice Architecture) monitor for the Pi coding agent.
-No LLM. It tokenizes TS/JS imports, maps slices, scores drift, and warns like an LSP.
+No LLM. It tokenizes imports (TS/JS, Python, Rust, Java, Kotlin, Go), maps slices, scores drift, and warns like an LSP.
 
 ## Layout (this plugin is itself VSA)
 - `index.ts`             composition root — Pi adapter only, no logic
-- `src/shared/`          kernel: `types.ts`, `config.ts`, `paths.ts` (no slice imports)
-- `src/slices/scan/`     `source -> ImportEdge[]`
+- `src/shared/`          kernel: `types.ts`, `config.ts`, `languages.ts`, `paths.ts` (no slice imports)
+- `src/slices/scan/`     `source + language -> ImportEdge[]` (per-language scanners + dispatch)
 - `src/slices/topology/` `project -> SliceLookup`
 - `src/slices/classify/` `facts -> Report` (rules + score)
 - `src/slices/report/`   `Report -> markdown / status / injection`
 - `src/slices/enforce/`  `Report + mode -> GateDecision` (auto | human)
+- `src/slices/settings/` `WatcherConfig -> validated knobs + /vsa completions`
 - `test/`                `node:test` suites
 
 **Rule: slices never import each other.** They depend on `src/shared` only; `index.ts` wires them.
@@ -28,6 +29,7 @@ npm test        # tsc && node --test dist/test/*.test.js
 - `src/**` imports use explicit `.js` extensions (NodeNext); tests import `../src/**.js` the same way.
 - Pure functions. No global mutable state outside `index.ts`. Never touch network or an LLM.
 - New detection rule = one function in `classify/rules.ts` + one test in `test/classify.test.ts`.
+- New language = one scanner in `scan/<lang>.ts` + a `languageOf` entry in `shared/languages.ts` + a resolver branch in `shared/paths.ts` + tests in `test/languages.test.ts`.
 - New config knob = field in `WatcherConfig` (`shared/types.ts`) + default in `shared/config.ts`.
 
 ## Conventions

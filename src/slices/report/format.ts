@@ -6,6 +6,7 @@
  */
 
 import { baseName } from "../../shared/paths.js";
+import { languageOf, type SourceLanguage } from "../../shared/languages.js";
 import type { Finding, Mode, Report, Severity } from "../../shared/types.js";
 
 const MARK: Record<Severity, string> = {
@@ -52,26 +53,21 @@ const VERDICT_COLOR: Record<Report["verdict"], string> = {
   severe: "error",
 };
 
-/** Extension → mascot. Longest extension wins (`.pyi` before `.py`). */
-const LANGUAGE_EMOJI: ReadonlyArray<readonly [string, string]> = [
-  [".pyi", "🐍"],
-  [".py", "🐍"],
-  [".rs", "🦀"],
-  [".tsx", "🔷"],
-  [".mts", "🔷"],
-  [".cts", "🔷"],
-  [".ts", "🔷"],
-  [".jsx", "🟨"],
-  [".mjs", "🟨"],
-  [".cjs", "🟨"],
-  [".js", "🟨"],
-  [".go", "🐹"],
-];
+/** Language mascot shown before the file name. */
+const LANGUAGE_EMOJI: Record<SourceLanguage, string> = {
+  typescript: "🔷",
+  javascript: "🟨",
+  python: "🐍",
+  rust: "🦀",
+  java: "☕",
+  kotlin: "🟪",
+  go: "🐹",
+  unknown: "📄",
+};
 
 /** Mascot for a file path; a generic page when the language is unknown. */
 export function languageEmoji(file: string): string {
-  const lower = file.toLowerCase();
-  return LANGUAGE_EMOJI.find(([ext]) => lower.endsWith(ext))?.[1] ?? "📄";
+  return LANGUAGE_EMOJI[languageOf(file)];
 }
 
 function painter(theme?: StatusTheme): (color: string, text: string) => string {

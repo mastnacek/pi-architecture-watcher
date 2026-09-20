@@ -73,7 +73,7 @@ function kindOf(
  * Scan a TypeScript/JavaScript source for import edges.
  * Pure function — no filesystem access, no configuration.
  */
-export function scanImports(source: string): ImportEdge[] {
+export function scanTsImports(source: string): ImportEdge[] {
   const { masked, literals } = maskSource(source);
   const edges: ImportEdge[] = [];
   const keyword = /\b(import|export|require)\b/g;
