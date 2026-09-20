@@ -62,6 +62,11 @@ test("top-level completions list subcommands with help", () => {
   assert.equal(depth.value, "depth");
   assert.match(depth.description, /hloubky/i);
 
+  const roots = completeVsaArguments("roo", DEFAULT_CONFIG)?.[0];
+  assert.ok(roots);
+  assert.equal(roots.value, "roots");
+  assert.match(roots.description, /kořeny/i);
+
   const all = completeVsaArguments("", DEFAULT_CONFIG);
   assert.ok(all && all.some((i) => i.value === "help"));
 });

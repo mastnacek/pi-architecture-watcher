@@ -3,3 +3,4 @@
  */
 
 export { buildSliceMap } from "./slice-map.js";
+export { discoverRoots, type DiscoveredRoots } from "./discover.js";

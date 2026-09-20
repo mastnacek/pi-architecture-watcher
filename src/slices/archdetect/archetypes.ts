@@ -77,6 +77,21 @@ export const ARCHETYPES: readonly Archetype[] = [
   },
 ];
 
+/** Short display name per architecture, shown in the UI in place of "VSA". */
+const ARCHITECTURE_CODES: Record<ArchitectureId, string> = {
+  vsa: "VSA",
+  clean: "Clean",
+  hexagonal: "Hexagonal",
+  layered: "Layered",
+  "modular-monolith": "Modular monolith",
+  fsd: "FSD",
+};
+
+/** Short, human-facing name for an architecture (falls back to the raw id). */
+export function architectureCode(id: ArchitectureId): string {
+  return ARCHITECTURE_CODES[id] ?? id;
+}
+
 /** Id → English criterion, exactly the map Jev's `choice` question expects. */
 export function criteriaMap(): Record<ArchitectureId, string> {
   const out = {} as Record<ArchitectureId, string>;

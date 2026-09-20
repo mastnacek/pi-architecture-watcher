@@ -79,9 +79,14 @@ function emboldener(theme?: StatusTheme): (text: string) => string {
 }
 
 /** `VSA sleduje 12 řezů · 🚗 auto` — shown before anything is analyzed. */
-export function formatWatching(sliceCount: number, mode: Mode, theme?: StatusTheme): string {
+export function formatWatching(
+  sliceCount: number,
+  mode: Mode,
+  theme?: StatusTheme,
+  architecture = "VSA",
+): string {
   const paint = painter(theme);
-  return paint("accent", "VSA")
+  return paint("accent", architecture)
     + paint("dim", " sleduje ")
     + paint("text", `${sliceCount} řezů`)
     + paint("dim", " · ")
@@ -91,20 +96,21 @@ export function formatWatching(sliceCount: number, mode: Mode, theme?: StatusThe
 /** Compact, always-safe one-liner used by the status line. */
 export function formatStatus(
   report: Report | null,
-  options: { mode?: Mode; theme?: StatusTheme } = {},
+  options: { mode?: Mode; theme?: StatusTheme; architecture?: string } = {},
 ): string {
   if (!report) return "";
+  const arch = options.architecture ?? "VSA";
   const paint = painter(options.theme);
   const bold = emboldener(options.theme);
   const prefix = options.mode ? `${MODE_EMOJI[options.mode]} ` : "";
   const name = `${languageEmoji(report.file)} ${paint("dim", baseName(report.file))}`;
 
   if (report.findings.length === 0) {
-    return `${prefix}${paint("success", bold("VSA v pořádku"))} ${name}`;
+    return `${prefix}${paint("success", bold(`${arch} v pořádku`))} ${name}`;
   }
 
   const color = VERDICT_COLOR[report.verdict];
-  const head = paint(color, bold(`VSA ${VERDICT_LABEL[report.verdict]} ${report.score}/100`));
+  const head = paint(color, bold(`${arch} ${VERDICT_LABEL[report.verdict]} ${report.score}/100`));
   const counts = paint("error", `${report.counts.error} chyb`)
     + paint("dim", " · ")
     + paint("warning", `${report.counts.warning} varov`)
@@ -114,12 +120,12 @@ export function formatStatus(
 }
 
 /** Single line for notifications. */
-export function formatOneLiner(report: Report): string {
+export function formatOneLiner(report: Report, architecture = "VSA"): string {
   if (report.findings.length === 0) {
-    return `${report.file} — VSA v pořádku (0/100)`;
+    return `${report.file} — ${architecture} v pořádku (0/100)`;
   }
   const top = report.findings[0]!;
-  return `${report.file} — VSA ${VERDICT_LABEL[report.verdict]} ${report.score}/100 `
+  return `${report.file} — ${architecture} ${VERDICT_LABEL[report.verdict]} ${report.score}/100 `
     + `(${formatCounts(report)}) · ${top.rule}`;
 }
 
@@ -135,17 +141,21 @@ function formatFinding(finding: Finding, index: number): string {
 }
 
 /** Full human-readable report (markdown). */
-export function formatReport(report: Report, options?: { verbose?: boolean }): string {
+export function formatReport(
+  report: Report,
+  options?: { verbose?: boolean; architecture?: string },
+): string {
   void options;
+  const arch = options?.architecture ?? "VSA";
   const header = [
-    `## VSA report — \`${report.file}\``,
+    `## ${arch} report — \`${report.file}\``,
     `řez: ${report.slice ?? "—"} · sdílené: ${report.shared ?? "—"} · `
       + `verdikt: ${VERDICT_LABEL[report.verdict]} · skóre: ${report.score}/100 · `
       + `nálezy: ${formatCounts(report)}`,
   ];
 
   if (report.findings.length === 0) {
-    header.push("", "Nebyla nalezena žádná porušení vertikálních řezů.");
+    header.push("", "Nebyla nalezena žádná porušení architektury.");
     return header.join("\n");
   }
 
@@ -159,10 +169,10 @@ export function formatReport(report: Report, options?: { verbose?: boolean }): s
  * Deep module: this is the *only* place that decides how advice is phrased for
  * the agent, so auto mode stays consistent no matter which rule fired.
  */
-export function formatInjection(report: Report): string {
+export function formatInjection(report: Report, architecture = "VSA"): string {
   const head =
     `[pi-architecture-watcher] Tento zápis skóruje ${report.score}/100 proti architektuře `
-    + `vertikálních řezů projektu (verdikt: ${VERDICT_LABEL[report.verdict]}).`;
+    + `${architecture} projektu (verdikt: ${VERDICT_LABEL[report.verdict]}).`;
 
   const items = report.findings.map((f) => {
     const where = f.line !== undefined ? `L${f.line}: ` : "";

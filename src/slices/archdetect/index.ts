@@ -7,6 +7,7 @@
 
 export {
   ARCHETYPES,
+  architectureCode,
   criteriaMap,
   findArchetype,
   type Archetype,

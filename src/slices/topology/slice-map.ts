@@ -28,6 +28,18 @@ import type { SliceLookup, SliceRef, WatcherConfig } from "../../shared/types.js
 
 const NO_SLICE: null = null;
 
+/** Directory names that never hold a slice (build/tooling noise). */
+const NOISE_DIR_NAMES = new Set([
+  "__pycache__",
+  "node_modules",
+  "dist",
+  "build",
+  "out",
+  "coverage",
+  "site-packages",
+  "venv",
+]);
+
 interface DirInfo {
   hasSource: boolean;
   subdirs: string[];
@@ -67,6 +79,7 @@ function collectSlices(
   out: SliceRef[],
 ): void {
   for (const child of listDirs(rootAbs)) {
+    if (child.startsWith(".") || NOISE_DIR_NAMES.has(child)) continue;
     const childAbs = join(rootAbs, child);
     const info = inspect(childAbs, config);
 

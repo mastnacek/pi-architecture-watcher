@@ -39,7 +39,7 @@ import type {
   WatcherConfig,
 } from "./src/shared/types.js";
 import { scanImports } from "./src/slices/scan/index.js";
-import { buildSliceMap } from "./src/slices/topology/index.js";
+import { buildSliceMap, discoverRoots } from "./src/slices/topology/index.js";
 import { classifyFile, RULE_CATALOGUE } from "./src/slices/classify/index.js";
 import {
   formatDeclined,
@@ -58,7 +58,12 @@ import {
   parseValue,
   SETTING_SPECS,
 } from "./src/slices/settings/index.js";
-import { detectArchitecture, findArchetype, estimateDepth } from "./src/slices/archdetect/index.js";
+import {
+  architectureCode,
+  detectArchitecture,
+  estimateDepth,
+  findArchetype,
+} from "./src/slices/archdetect/index.js";
 
 const STATUS_KEY = "vsa";
 
@@ -185,7 +190,11 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
 
   const publishStatus = (ctx: ExtensionContext, watcher: WatcherState, report: Report): void => {
     if (!watcher.config.statusLine) return;
-    ctx.ui.setStatus(STATUS_KEY, formatStatus(report, { mode: watcher.config.mode, theme: ctx.ui.theme }));
+    ctx.ui.setStatus(STATUS_KEY, formatStatus(report, {
+      mode: watcher.config.mode,
+      theme: ctx.ui.theme,
+      architecture: architectureCode(watcher.config.architecture),
+    }));
   };
 
   // --- Pi wiring -----------------------------------------------------------
@@ -194,7 +203,15 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
     state = createState(ctx.cwd);
     if (state.config.enabled && state.config.statusLine) {
       const sliceCount = state.lookup.slices().length;
-      ctx.ui.setStatus(STATUS_KEY, formatWatching(sliceCount, state.config.mode, ctx.ui.theme));
+      ctx.ui.setStatus(
+        STATUS_KEY,
+        formatWatching(
+          sliceCount,
+          state.config.mode,
+          ctx.ui.theme,
+          architectureCode(state.config.architecture),
+        ),
+      );
     }
   });
 
@@ -241,8 +258,11 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
 
       case "confirm": {
         const approved = await ctx.ui.confirm(
-          `VSA ${report.verdict} (${report.score}/100)`,
-          `${formatReport(report, { verbose: false })}\n\nPřesto zapsat?`,
+          `${architectureCode(watcher.config.architecture)} ${report.verdict} (${report.score}/100)`,
+          `${formatReport(report, {
+            verbose: false,
+            architecture: architectureCode(watcher.config.architecture),
+          })}\n\nPřesto zapsat?`,
         );
         if (!approved) {
           ctx.ui.notify("[vsa] zápis zablokován architecture watcherem", "warning");
@@ -270,7 +290,10 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
     if (report.findings.length === 0) return;
 
     return {
-      content: [...event.content, { type: "text" as const, text: formatInjection(report) }],
+      content: [...event.content, {
+        type: "text" as const,
+        text: formatInjection(report, architectureCode(watcher.config.architecture)),
+      }],
     };
   });
 
@@ -314,7 +337,10 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
       watcher.last = report;
       publishStatus(ctx, watcher, report);
       return {
-        content: [{ type: "text" as const, text: formatReport(report) }],
+        content: [{
+          type: "text" as const,
+          text: formatReport(report, { architecture: architectureCode(watcher.config.architecture) }),
+        }],
         details: { verdict: report.verdict, score: report.score, findings: report.findings.length },
       };
     },
@@ -330,7 +356,7 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
   pi.registerCommand("vsa", {
     description:
       "Vertical Slice Architecture watcher: `/vsa [status|check <path>|config [get|set] <key> [value]|"
-      + "mode <auto|human|off>|rules|explain|init|detect|depth|rescan|on|off|help]`",
+      + "mode <auto|human|off>|rules|explain|init|detect|depth|roots|rescan|on|off|help]`",
     getArgumentCompletions: (prefix) =>
       completeVsaArguments(prefix, state?.config ?? DEFAULT_CONFIG),
     handler: async (args, ctx) => {
@@ -350,7 +376,11 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
             `sdílené: ${watcher.lookup.sharedRoots().join(", ") || "—"}`,
             `konfigurace: ${projectConfigPath(watcher.root)}`,
           ];
-          if (report) lines.push("", formatReport(report));
+          if (report) {
+            lines.push("", formatReport(report, {
+              architecture: architectureCode(watcher.config.architecture),
+            }));
+          }
           ctx.ui.notify(lines.join("\n"), "info");
           return;
         }
@@ -369,7 +399,10 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
           const report = analyze(watcher, abs, relPosix(watcher.lookup.root, abs), content);
           watcher.last = report;
           publishStatus(ctx, watcher, report);
-          ctx.ui.notify(formatReport(report), report.findings.length === 0 ? "info" : "warning");
+          ctx.ui.notify(
+            formatReport(report, { architecture: architectureCode(watcher.config.architecture) }),
+            report.findings.length === 0 ? "info" : "warning",
+          );
           return;
         }
 
@@ -386,7 +419,10 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
         }
 
         case "rules":
-          ctx.ui.notify(`Pravidla VSA\n${formatRuleCatalogue(RULE_CATALOGUE)}`, "info");
+          ctx.ui.notify(
+            `Pravidla ${architectureCode(watcher.config.architecture)}\n${formatRuleCatalogue(RULE_CATALOGUE)}`,
+            "info",
+          );
           return;
 
         case "explain": {
@@ -394,7 +430,10 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
             ctx.ui.notify("Zatím žádný soubor neanalyzován. Spusť `/vsa check <cesta>`.", "warning");
             return;
           }
-          ctx.ui.notify(formatReport(watcher.last), "info");
+          ctx.ui.notify(
+            formatReport(watcher.last, { architecture: architectureCode(watcher.config.architecture) }),
+            "info",
+          );
           return;
         }
 
@@ -432,13 +471,41 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
           }
           const d = result.detection;
           const archetype = findArchetype(d.architecture);
-          watcher.config = { ...watcher.config, architecture: d.architecture };
-          saveProjectConfig(watcher.root, watcher.config);
+          const discovered = discoverRoots(watcher.root, watcher.config);
+          const next: WatcherConfig = { ...watcher.config, architecture: d.architecture };
+          if (discovered.roots.length > 0) next.roots = discovered.roots;
+          if (discovered.sharedRoots.length > 0) next.sharedRoots = discovered.sharedRoots;
+          watcher.config = next;
+          saveProjectConfig(watcher.root, next);
           refreshTopology(ctx);
           const pct = Math.round(d.confidence * 100);
           ctx.ui.notify(
             `Detekovaná architektura: ${archetype?.label ?? d.architecture} (jistota ${pct}%)\n`
               + `model: ${d.model ?? "—"} · náklad $${d.cost ?? 0}\n`
+              + `kořeny řezů nalezeny (${discovered.roots.length}): ${discovered.roots.join(", ") || "—"}\n`
+              + `řezy: ${watcher.lookup.slices().length}\n`
+              + `uloženo → ${projectConfigPath(watcher.root)}`,
+            "info",
+          );
+          return;
+        }
+
+        case "roots": {
+          const discovered = discoverRoots(watcher.root, watcher.config);
+          if (discovered.roots.length === 0 && discovered.sharedRoots.length === 0) {
+            ctx.ui.notify("[vsa] nenašel jsem žádné adresáře řezů ani sdílené kořeny.", "warning");
+            return;
+          }
+          const next: WatcherConfig = { ...watcher.config };
+          if (discovered.roots.length > 0) next.roots = discovered.roots;
+          if (discovered.sharedRoots.length > 0) next.sharedRoots = discovered.sharedRoots;
+          watcher.config = next;
+          saveProjectConfig(watcher.root, next);
+          refreshTopology(ctx);
+          ctx.ui.notify(
+            `[vsa] kořeny řezů (${discovered.roots.length}): ${discovered.roots.join(", ") || "—"}\n`
+              + `sdílené (${discovered.sharedRoots.length}): ${discovered.sharedRoots.join(", ") || "—"}\n`
+              + `řezy: ${watcher.lookup.slices().length}\n`
               + `uloženo → ${projectConfigPath(watcher.root)}`,
             "info",
           );
@@ -549,7 +616,7 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
         case "help":
           ctx.ui.notify(
             "Příkazy VSA: /vsa [status | check <cesta> | config [get|set] <klíč> [hodnota] | "
-              + "mode <auto|human|off> | rules | explain | init | detect | depth | rescan | on | off]. "
+              + "mode <auto|human|off> | rules | explain | init | detect | depth | roots | rescan | on | off]. "
               + "Našeptávač argumentů je kontextový a ukazuje nápovědu při psaní.",
             "info",
           );
@@ -557,7 +624,7 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
 
         default:
           ctx.ui.notify(
-            `Neznámý podpříkaz \`${sub}\`. Zkus: status, check, config, mode, rules, explain, init, detect, depth, rescan, on, off, help`,
+            `Neznámý podpříkaz \`${sub}\`. Zkus: status, check, config, mode, rules, explain, init, detect, depth, roots, rescan, on, off, help`,
             "warning",
           );
       }
@@ -580,7 +647,10 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
       const report = analyze(watcher, watcher.last.abs, watcher.last.file, content);
       watcher.last = report;
       publishStatus(ctx, watcher, report);
-      ctx.ui.notify(formatOneLiner(report), report.findings.length === 0 ? "info" : "warning");
+      ctx.ui.notify(
+        formatOneLiner(report, architectureCode(watcher.config.architecture)),
+        report.findings.length === 0 ? "info" : "warning",
+      );
     },
   });
 }

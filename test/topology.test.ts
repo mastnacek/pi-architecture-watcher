@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { makeProject } from "./helpers.js";
+import { discoverRoots } from "../src/slices/topology/index.js";
 
 const base = {
   "src/features/billing/index.ts": "export const billing = 1;\n",
@@ -56,4 +57,28 @@ test("topology: root-level mode publishes slice root files", () => {
   const internals = join(project.root, "src/features/billing/internal/charge.ts");
   assert.equal(project.lookup.isPublicEntry(rootFile, billing), true);
   assert.equal(project.lookup.isPublicEntry(internals, billing), false);
+});
+
+test("topology: discovers nested slice and shared roots", () => {
+  const project = makeProject({
+    "frontend/src/features/auth/index.ts": "export const a = 1;\n",
+    "frontend/src/shared/lib.ts": "export const b = 1;\n",
+    "backend/app/features/billing/index.ts": "export const c = 1;\n",
+    "backend/app/shared/util.py": "x = 1\n",
+  });
+  const found = discoverRoots(project.root, project.config);
+  assert.deepEqual(found.roots, ["backend/app/features", "frontend/src/features"]);
+  assert.deepEqual(found.sharedRoots, ["backend/app/shared", "frontend/src/shared"]);
+});
+
+test("topology: discovery ignores test dirs and childless slice dirs", () => {
+  const project = makeProject({
+    "src/features/empty/README.md": "# nothing\n",
+    "tests/features/a/index.ts": "export const a = 1;\n",
+    ".venv/lib/site-packages/pack/common/x.py": "x = 1\n",
+    ".hidden/features/b/index.ts": "export const b = 1;\n",
+  });
+  const found = discoverRoots(project.root, project.config);
+  assert.deepEqual(found.roots, []);
+  assert.deepEqual(found.sharedRoots, []);
 });

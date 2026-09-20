@@ -34,6 +34,7 @@ export const VSA_SUBCOMMANDS: readonly Suggestion[] = [
   { value: "rescan", description: "Přestavět topologii řezů" },
   { value: "detect", description: "Detekovat architekturu přes decision model Jev" },
   { value: "depth", description: "Statický odhad hloubky modulů (mělké/hluboké)" },
+  { value: "roots", description: "Najít a uložit kořeny řezů a sdílené jádro" },
   { value: "on", description: "Zapnout watcher" },
   { value: "off", description: "Vypnout watcher" },
   { value: "help", description: "Zobrazit nápovědu" },
