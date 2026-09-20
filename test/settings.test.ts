@@ -58,23 +58,31 @@ test("top-level completions list subcommands with help", () => {
 
 test("config completions descend into actions, keys and values", () => {
   const actions = completeVsaArguments("config ", DEFAULT_CONFIG);
-  assert.deepEqual(actions?.map((i) => i.value), ["get", "set"]);
+  assert.deepEqual(actions?.map((i) => i.value), ["config get", "config set"]);
+  assert.deepEqual(actions?.map((i) => i.label), ["get", "set"]);
 
   const keys = completeVsaArguments("config set b", DEFAULT_CONFIG);
-  assert.deepEqual(keys?.map((i) => i.value), ["blockAt"]);
+  assert.deepEqual(keys?.map((i) => i.value), ["config set blockAt"]);
+  assert.deepEqual(keys?.map((i) => i.label), ["blockAt"]);
   assert.match(keys?.[0]?.description ?? "", /nyní:/);
 
   const values = completeVsaArguments("config set mode ", DEFAULT_CONFIG);
-  assert.deepEqual(values?.map((i) => i.value), ["auto", "human", "off"]);
+  assert.deepEqual(values?.map((i) => i.value), [
+    "config set mode auto",
+    "config set mode human",
+    "config set mode off",
+  ]);
+  assert.deepEqual(values?.map((i) => i.label), ["auto", "human", "off"]);
   assert.match(values?.[1]?.description ?? "", /zeptá/i);
 
   const bools = completeVsaArguments("config set enabled f", DEFAULT_CONFIG);
-  assert.deepEqual(bools?.map((i) => i.value), ["false"]);
+  assert.deepEqual(bools?.map((i) => i.value), ["config set enabled false"]);
 });
 
 test("mode shorthand and free-form arguments", () => {
   const modes = completeVsaArguments("mode ", DEFAULT_CONFIG);
-  assert.deepEqual(modes?.map((i) => i.value), ["auto", "human", "off"]);
+  assert.deepEqual(modes?.map((i) => i.value), ["mode auto", "mode human", "mode off"]);
+  assert.deepEqual(modes?.map((i) => i.label), ["auto", "human", "off"]);
 
   assert.equal(completeVsaArguments("check ", DEFAULT_CONFIG), null);
   assert.equal(completeVsaArguments("status ", DEFAULT_CONFIG), null);
