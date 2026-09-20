@@ -38,6 +38,12 @@ npm test        # tsc && node --test dist/test/*.test.js
 - Every `Finding` carries `rule, severity, file, line, detail, suggestion` and optional `fix`.
 - Never block on `hint`. Block only per `config.blockAt`.
 
+## UX: lazy menus + Czech help
+- **Lazy menus** = `/vsa` argument completions. Live in `src/slices/settings/complete.ts`; wired via `getArgumentCompletions` in `index.ts`. The catalogue (`SETTING_SPECS` in `catalogue.ts`) is the single source — new knob automatically gets key/value completions.
+- **Completion contract (critical):** `getArgumentCompletions(prefix)` receives the *entire* argument text after `/vsa `, and `item.value` replaces that whole prefix. So `value` must be the full argument string (`mode human`, `config set mode human`), while `label` stays the leaf token shown in the dropdown (`human`). Never return the leaf alone as `value`.
+- **Czech help** = all user-facing strings are Czech (notifications, `description`, `valueHelp`, catalogue prose). Code and identifiers stay English.
+- Adding a subcommand: entry in `VSA_SUBCOMMANDS` + a `case` in the `/vsa` handler + a test in `test/settings.test.ts` (assert full `value` and leaf `label`).
+
 ## Before commit
 ```bash
 npm run check && npm test
