@@ -186,7 +186,6 @@ export interface WatcherConfig {
   /** keep an LSP-like status entry up to date */
   statusLine: boolean;
   /** allow detection (calls the Jev decision model over the network) */
-  detectArchitecture: boolean;
   /** which architecture the topology and drift rules target */
   architecture: ArchitectureId;
   /** decision model id used by `/vsa detect` */

@@ -65,7 +65,6 @@ export const DEFAULT_CONFIG: WatcherConfig = {
   injectFixes: true,
   autoFixImports: false,
   statusLine: true,
-  detectArchitecture: false,
   architecture: "vsa",
   detectionModel: "jev-latest",
 };
@@ -156,7 +155,6 @@ export function mergeConfig(base: WatcherConfig, raw: Record<string, unknown>): 
     injectFixes: asBoolean(raw.injectFixes, base.injectFixes),
     autoFixImports: asBoolean(raw.autoFixImports, base.autoFixImports),
     statusLine: asBoolean(raw.statusLine, base.statusLine),
-    detectArchitecture: asBoolean(raw.detectArchitecture, base.detectArchitecture),
     architecture: asOneOf(raw.architecture, ARCHITECTURES, base.architecture),
     detectionModel: typeof raw.detectionModel === "string" && raw.detectionModel.length > 0
       ? raw.detectionModel

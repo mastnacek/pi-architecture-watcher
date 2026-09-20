@@ -359,10 +359,9 @@ Uloženo do ${projectConfigPath(state.root)}`,
       refreshStatus(ctx, state, null);
     }
 
-    // Offer architecture detection if not yet configured and detectArchitecture is enabled
+    // Offer architecture detection if not yet configured
     if (
       state.config.enabled
-      && state.config.detectArchitecture
       && state.config.architecture === "vsa" // default, not yet detected
       && ctx.hasUI
       && state.lookup.slices().length > 0
@@ -611,14 +610,7 @@ Uloženo do ${projectConfigPath(state.root)}`,
         }
 
         case "detect": {
-          if (!watcher.config.detectArchitecture) {
-            ctx.ui.notify(
-              "[vsa] detekce architektury je vypnutá. Zapni ji: `/vsa config set detectArchitecture true`",
-              "warning",
-            );
-            return;
-          }
-          ctx.ui.notify("[vsa] spouštím detekci architektury přes decision model…", "info");
+          ctx.ui.notify("[vsa] spouštím detekci architektury…", "info");
           const result = await detectArchitecture(watcher.lookup, watcher.config, {
             apiKey: resolveOpenRouterKey(),
           });

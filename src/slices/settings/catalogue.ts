@@ -98,11 +98,6 @@ export const SETTING_SPECS: readonly SettingSpec[] = [
     description: "Udržovat stavový řádek podobný LSP",
   },
   {
-    key: "detectArchitecture",
-    kind: "boolean",
-    description: "Povolit detekci architektury přes model Jev (vyžaduje síť)",
-  },
-  {
     key: "architecture",
     kind: "enum",
     description: "Cílová architektura pro topologii a pravidla driftu",

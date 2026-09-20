@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-09-20T20:27:10.064Z",
+  "lastUpdated": "2026-09-20T20:29:39.570Z",
   "records": [
     {
       "id": "ADR-001",
@@ -144,6 +144,14 @@
       "date": "2026-09-20 22:27:10",
       "file": "2026-09-20-ADR-021-successfully-replaced-1-blocks-in-homejara100-proj.md",
       "constraint": "Successfully replaced 1 block(s) in /home/jara/100_projects/pi/plugins: Successfully replaced 1 block(s) in /home/jara/100_projects/pi/plugins/pi-architecture-watcher/index.ts.",
+      "status": "active"
+    },
+    {
+      "id": "ADR-022",
+      "title": "- feat: Needle WASM integration for local architecture detection (84c9",
+      "date": "2026-09-20 22:29:39",
+      "file": "2026-09-20-ADR-022-feat-needle-wasm-integration-for-local-architectur.md",
+      "constraint": "- feat: Needle WASM integration for local architecture detection (84c9: [main 9eb1e77] feat: add Compare engine for side-by-side Jev vs Needle detection  6 files changed, 220 insertions(+), 4 deletions(-)  create mode 100644 docs/adr/2026-09-20-ADR-019-main-84c9704-feat-n",
       "status": "active"
     }
   ]
