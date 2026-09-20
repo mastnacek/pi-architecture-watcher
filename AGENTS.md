@@ -40,7 +40,7 @@ npm test        # tsc && node --test dist/test/*.test.js
 
 ## UX: lazy menus + Czech help
 - **Lazy menus** = `/vsa` argument completions. Live in `src/slices/settings/complete.ts`; wired via `getArgumentCompletions` in `index.ts`. The catalogue (`SETTING_SPECS` in `catalogue.ts`) is the single source — new knob automatically gets key/value completions.
-- **Completion contract (critical):** `getArgumentCompletions(prefix)` receives the *entire* argument text after `/vsa `, and `item.value` replaces that whole prefix. So `value` must be the full argument string (`mode human`, `config set mode human`), while `label` stays the leaf token shown in the dropdown (`human`). Never return the leaf alone as `value`.
+- **Completion contract (critical):** `getArgumentCompletions(prefix)` receives the *entire* argument text after `/vsa `, and `item.value` replaces that whole prefix. So `value` must be the full argument string (`mode human`, `config set mode human`), while `label` stays the leaf token shown in the dropdown (`human`). Never return the leaf alone as `value`. Append a trailing space to `value` for non-terminal completions (subcommands/actions/keys that take a further argument) so Tab-completing one token lets the next parameter's completion re-trigger; terminal values get no trailing space.
 - **Czech help** = all user-facing strings are Czech (notifications, `description`, `valueHelp`, catalogue prose). Code and identifiers stay English.
 - Adding a subcommand: entry in `VSA_SUBCOMMANDS` + a `case` in the `/vsa` handler + a test in `test/settings.test.ts` (assert full `value` and leaf `label`).
 

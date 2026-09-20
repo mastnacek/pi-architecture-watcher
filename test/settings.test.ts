@@ -49,7 +49,7 @@ test("formatValue renders lists as typed input", () => {
 test("top-level completions list subcommands with help", () => {
   const config = completeVsaArguments("con", DEFAULT_CONFIG)?.[0];
   assert.ok(config);
-  assert.equal(config.value, "config");
+  assert.equal(config.value, "config ");
   assert.match(config.description, /nastavení/i);
 
   const all = completeVsaArguments("", DEFAULT_CONFIG);
@@ -58,11 +58,11 @@ test("top-level completions list subcommands with help", () => {
 
 test("config completions descend into actions, keys and values", () => {
   const actions = completeVsaArguments("config ", DEFAULT_CONFIG);
-  assert.deepEqual(actions?.map((i) => i.value), ["config get", "config set"]);
+  assert.deepEqual(actions?.map((i) => i.value), ["config get ", "config set "]);
   assert.deepEqual(actions?.map((i) => i.label), ["get", "set"]);
 
   const keys = completeVsaArguments("config set b", DEFAULT_CONFIG);
-  assert.deepEqual(keys?.map((i) => i.value), ["config set blockAt"]);
+  assert.deepEqual(keys?.map((i) => i.value), ["config set blockAt "]);
   assert.deepEqual(keys?.map((i) => i.label), ["blockAt"]);
   assert.match(keys?.[0]?.description ?? "", /nyní:/);
 

@@ -19,13 +19,15 @@ export interface SettingsCompletion {
 interface Suggestion {
   value: string;
   description: string;
+  /** Append a trailing space so the next argument can be typed/autocompleted. */
+  space?: boolean;
 }
 
 export const VSA_SUBCOMMANDS: readonly Suggestion[] = [
   { value: "status", description: "Zobrazit režim, řezy, sdílené kořeny a poslední report" },
-  { value: "check", description: "Analyzovat cestu k souboru proti VSA" },
-  { value: "config", description: "Zobrazit nebo změnit nastavení watcheru" },
-  { value: "mode", description: "Přepnout režim brány: auto | human | off" },
+  { value: "check", description: "Analyzovat cestu k souboru proti VSA", space: true },
+  { value: "config", description: "Zobrazit nebo změnit nastavení watcheru", space: true },
+  { value: "mode", description: "Přepnout režim brány: auto | human | off", space: true },
   { value: "rules", description: "Vypsat všechna detekční pravidla" },
   { value: "explain", description: "Znovu vypsat poslední report" },
   { value: "init", description: "Zapsat výchozí .pi/architecture-watcher.json" },
@@ -36,27 +38,32 @@ export const VSA_SUBCOMMANDS: readonly Suggestion[] = [
 ];
 
 const CONFIG_ACTIONS: readonly Suggestion[] = [
-  { value: "get", description: "Vypsat aktuální hodnotu nastavení" },
-  { value: "set", description: "Uložit novou hodnotu nastavení" },
+  { value: "get", description: "Vypsat aktuální hodnotu nastavení", space: true },
+  { value: "set", description: "Uložit novou hodnotu nastavení", space: true },
 ];
 
 /**
  * Filter suggestions by the leaf token and expand each into the full argument
  * string Pi should insert. `base` is the already-typed, stable part of the
  * argument; `item.value` replaces the *entire* argument prefix, so it must be
- * `base + leaf`, never the leaf alone.
+ * `base + leaf`, never the leaf alone. A `space` suggestion appends a trailing
+ * space so the next parameter can be typed and re-trigger completion.
  */
 function filter(base: string, suggestions: readonly Suggestion[], prefix: string): SettingsCompletion[] | null {
   const items = suggestions
     .filter((s) => s.value.startsWith(prefix))
-    .map((s) => ({ value: `${base}${s.value}`, label: s.value, description: s.description }));
+    .map((s) => ({
+      value: `${base}${s.value}${s.space ? " " : ""}`,
+      label: s.value,
+      description: s.description,
+    }));
   return items.length > 0 ? items : null;
 }
 
 /** Key completions, annotated with the value currently in effect. */
 function completeKeys(base: string, current: WatcherConfig, prefix: string): SettingsCompletion[] | null {
   const items = SETTING_SPECS.filter((spec) => spec.key.startsWith(prefix)).map((spec) => ({
-    value: `${base}${spec.key}`,
+    value: `${base}${spec.key} `,
     label: spec.key,
     description: `${spec.description} (nyní: ${formatValue(current[spec.key])})`,
   }));
