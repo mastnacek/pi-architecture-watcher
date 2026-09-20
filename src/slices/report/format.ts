@@ -9,34 +9,34 @@ import { baseName } from "../../shared/paths.js";
 import type { Finding, Report, Severity } from "../../shared/types.js";
 
 const MARK: Record<Severity, string> = {
-  error: "error",
-  warning: "warn ",
-  hint: "hint ",
+  error: "chyba",
+  warning: "varov",
+  hint: "tip",
 };
 
 const VERDICT_LABEL: Record<Report["verdict"], string> = {
-  clean: "clean",
-  drift: "drift",
-  violation: "violation",
-  severe: "severe",
+  clean: "v pořádku",
+  drift: "odchylka",
+  violation: "porušení",
+  severe: "závažné",
 };
 
-/** `1E 2W 1H` style counters. */
+/** `1 chyb · 2 varov · 1 tip` style counters. */
 export function formatCounts(report: Report): string {
-  return `${report.counts.error}E ${report.counts.warning}W ${report.counts.hint}H`;
+  return `${report.counts.error} chyb · ${report.counts.warning} varov · ${report.counts.hint} tip`;
 }
 
 /** Compact, always-safe one-liner used by the status line. */
 export function formatStatus(report: Report | null): string {
   if (!report) return "";
-  if (report.findings.length === 0) return `VSA ${baseName(report.file)}: clean`;
+  if (report.findings.length === 0) return `VSA ${baseName(report.file)}: v pořádku`;
   return `VSA ${VERDICT_LABEL[report.verdict]} ${report.score}/100 (${formatCounts(report)})`;
 }
 
 /** Single line for notifications. */
 export function formatOneLiner(report: Report): string {
   if (report.findings.length === 0) {
-    return `${report.file} — VSA clean (0/100)`;
+    return `${report.file} — VSA v pořádku (0/100)`;
   }
   const top = report.findings[0]!;
   return `${report.file} — VSA ${VERDICT_LABEL[report.verdict]} ${report.score}/100 `
@@ -44,13 +44,13 @@ export function formatOneLiner(report: Report): string {
 }
 
 function formatFinding(finding: Finding, index: number): string {
-  const where = finding.line !== undefined ? ` (line ${finding.line})` : "";
+  const where = finding.line !== undefined ? ` (řádek ${finding.line})` : "";
   const lines = [
     `### ${index + 1}. [${MARK[finding.severity].trim()}] ${finding.rule} — ${finding.title}${where}`,
     finding.detail,
     `→ ${finding.suggestion}`,
   ];
-  if (finding.fix) lines.push(`fix: \`${finding.fix}\``);
+  if (finding.fix) lines.push(`oprava: \`${finding.fix}\``);
   return lines.join("\n");
 }
 
@@ -59,13 +59,13 @@ export function formatReport(report: Report, options?: { verbose?: boolean }): s
   const verbose = options?.verbose ?? true;
   const header = [
     `## VSA report — \`${report.file}\``,
-    `slice: ${report.slice ?? "—"} · shared: ${report.shared ?? "—"} · `
-      + `verdict: ${VERDICT_LABEL[report.verdict]} · score: ${report.score}/100 · `
-      + `findings: ${formatCounts(report)}`,
+    `řez: ${report.slice ?? "—"} · sdílené: ${report.shared ?? "—"} · `
+      + `verdikt: ${VERDICT_LABEL[report.verdict]} · skóre: ${report.score}/100 · `
+      + `nálezy: ${formatCounts(report)}`,
   ];
 
   if (report.findings.length === 0) {
-    header.push("", "No vertical-slice violations detected.");
+    header.push("", "Nebyla nalezena žádná porušení vertikálních řezů.");
     return header.join("\n");
   }
 
@@ -81,20 +81,20 @@ export function formatReport(report: Report, options?: { verbose?: boolean }): s
  */
 export function formatInjection(report: Report): string {
   const head =
-    `[pi-architecture-watcher] This write scores ${report.score}/100 against the project's `
-    + `vertical slice architecture (verdict: ${VERDICT_LABEL[report.verdict]}).`;
+    `[pi-architecture-watcher] Tento zápis skóruje ${report.score}/100 proti architektuře `
+    + `vertikálních řezů projektu (verdikt: ${VERDICT_LABEL[report.verdict]}).`;
 
   const items = report.findings.map((f) => {
     const where = f.line !== undefined ? `L${f.line}: ` : "";
-    const fix = f.fix ? ` Suggested import: \`${f.fix}\`.` : "";
+    const fix = f.fix ? ` Navrhovaný import: \`${f.fix}\`.` : "";
     return `- ${where}[${f.severity}] ${f.rule}: ${f.suggestion}${fix}`;
   });
 
   return [
     head,
-    "Apply these corrections now, without asking:",
+    "Proveď tyto opravy nyní, bez dotazování:",
     ...items,
-    "If a correction would change behavior, say so and stop instead of guessing.",
+    "Pokud by oprava změnila chování, řekni to a přestaň, nehádej.",
   ].join("\n");
 }
 
@@ -106,14 +106,14 @@ export function formatInjection(report: Report): string {
  */
 export function formatDeclined(report: Report): string {
   const head =
-    `[pi-architecture-watcher] The user declined this write: it scores ${report.score}/100 `
+    `[pi-architecture-watcher] Uživatel tento zápis odmítl: skóruje ${report.score}/100 `
     + `(${VERDICT_LABEL[report.verdict]}).`;
   const items = report.findings.map(
     (f) => `- [${f.severity}] ${f.rule}: ${f.suggestion}${f.fix ? ` (\`${f.fix}\`)` : ""}`,
   );
   return [
     head,
-    "Do not retry the same change verbatim. Resolve these points first, then ask:",
+    "Nezkoušej stejnou změnu znovu doslova. Nejprve vyřeš tyto body, pak se zeptej:",
     ...items,
   ].join("\n");
 }

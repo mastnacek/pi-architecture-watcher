@@ -48,6 +48,13 @@ import {
   formatStatus,
 } from "./src/slices/report/index.js";
 import { decideGate } from "./src/slices/enforce/index.js";
+import {
+  completeVsaArguments,
+  findSetting,
+  formatValue,
+  parseValue,
+  SETTING_SPECS,
+} from "./src/slices/settings/index.js";
 
 const STATUS_KEY = "vsa";
 
@@ -167,7 +174,7 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
     state = createState(ctx.cwd);
     if (state.config.enabled && state.config.statusLine) {
       const sliceCount = state.lookup.slices().length;
-      ctx.ui.setStatus(STATUS_KEY, `VSA watching ${sliceCount} slices · mode ${state.config.mode}`);
+      ctx.ui.setStatus(STATUS_KEY, `VSA sleduje ${sliceCount} řezů · režim ${state.config.mode}`);
     }
   });
 
@@ -215,10 +222,10 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
       case "confirm": {
         const approved = await ctx.ui.confirm(
           `VSA ${report.verdict} (${report.score}/100)`,
-          `${formatReport(report, { verbose: false })}\n\nWrite anyway?`,
+          `${formatReport(report, { verbose: false })}\n\nPřesto zapsat?`,
         );
         if (!approved) {
-          ctx.ui.notify("[vsa] write blocked by architecture watcher", "warning");
+          ctx.ui.notify("[vsa] zápis zablokován architecture watcherem", "warning");
           return {
             block: true,
             reason: formatDeclined(report),
@@ -302,14 +309,10 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
 
   pi.registerCommand("vsa", {
     description:
-      "Vertical Slice Architecture watcher: `/vsa [status|check <path>|mode <auto|human|off>|"
-      + "rules|explain|init|rescan|on|off]`",
-    getArgumentCompletions: (prefix) => {
-      const subs = ["status", "check", "mode", "rules", "explain", "init", "rescan", "on", "off"];
-      return subs
-        .filter((s) => s.startsWith(prefix))
-        .map((s) => ({ value: s, label: s }));
-    },
+      "Vertical Slice Architecture watcher: `/vsa [status|check <path>|config [get|set] <key> [value]|"
+      + "mode <auto|human|off>|rules|explain|init|rescan|on|off|help]`",
+    getArgumentCompletions: (prefix) =>
+      completeVsaArguments(prefix, state?.config ?? DEFAULT_CONFIG),
     handler: async (args, ctx) => {
       const watcher = ensureState(ctx);
       const [sub = "status", ...rest] = args.trim().split(/\s+/);
@@ -319,13 +322,13 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
         case "status": {
           const report = watcher.last;
           const lines = [
-            `mode: ${watcher.config.mode} · enabled: ${watcher.config.enabled} · `
+            `režim: ${watcher.config.mode} · zapnuto: ${watcher.config.enabled} · `
               + `blockAt: ${watcher.config.blockAt}`,
-            `root: ${watcher.lookup.root}`,
-            `slices (${watcher.lookup.slices().length}): `
+            `kořen: ${watcher.lookup.root}`,
+            `řezy (${watcher.lookup.slices().length}): `
               + watcher.lookup.slices().map((s) => s.id).join(", "),
-            `shared: ${watcher.lookup.sharedRoots().join(", ") || "—"}`,
-            `config: ${projectConfigPath(watcher.root)}`,
+            `sdílené: ${watcher.lookup.sharedRoots().join(", ") || "—"}`,
+            `konfigurace: ${projectConfigPath(watcher.root)}`,
           ];
           if (report) lines.push("", formatReport(report));
           ctx.ui.notify(lines.join("\n"), "info");
@@ -335,12 +338,12 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
         case "check": {
           const abs = resolveTargetPath(ctx, arg);
           if (!abs) {
-            ctx.ui.notify("Usage: /vsa check <path>", "warning");
+            ctx.ui.notify("Použití: /vsa check <cesta>", "warning");
             return;
           }
           const content = readTextSafe(abs);
           if (content === null) {
-            ctx.ui.notify(`Cannot read ${abs}`, "error");
+            ctx.ui.notify(`Nelze přečíst ${abs}`, "error");
             return;
           }
           const report = analyze(watcher, abs, relPosix(watcher.lookup.root, abs), content);
@@ -353,22 +356,22 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
         case "mode": {
           const next = arg.trim();
           if (next !== "auto" && next !== "human" && next !== "off") {
-            ctx.ui.notify("Usage: /vsa mode <auto|human|off>", "warning");
+            ctx.ui.notify("Použití: /vsa mode <auto|human|off>", "warning");
             return;
           }
           watcher.config = { ...watcher.config, mode: next };
           saveProjectConfig(watcher.root, watcher.config);
-          ctx.ui.notify(`[vsa] mode = ${next} (saved to ${projectConfigPath(watcher.root)})`, "info");
+          ctx.ui.notify(`[vsa] režim = ${next} (uloženo do ${projectConfigPath(watcher.root)})`, "info");
           return;
         }
 
         case "rules":
-          ctx.ui.notify(`VSA rules\n${formatRuleCatalogue(RULE_CATALOGUE)}`, "info");
+          ctx.ui.notify(`Pravidla VSA\n${formatRuleCatalogue(RULE_CATALOGUE)}`, "info");
           return;
 
         case "explain": {
           if (!watcher.last) {
-            ctx.ui.notify("No file analyzed yet. Run `/vsa check <path>`.", "warning");
+            ctx.ui.notify("Zatím žádný soubor neanalyzován. Spusť `/vsa check <cesta>`.", "warning");
             return;
           }
           ctx.ui.notify(formatReport(watcher.last), "info");
@@ -378,14 +381,14 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
         case "init": {
           saveProjectConfig(watcher.root, { ...DEFAULT_CONFIG });
           refreshTopology(ctx);
-          ctx.ui.notify(`Wrote default config to ${projectConfigPath(watcher.root)}`, "info");
+          ctx.ui.notify(`Výchozí konfigurace zapsána do ${projectConfigPath(watcher.root)}`, "info");
           return;
         }
 
         case "rescan": {
           refreshTopology(ctx);
           ctx.ui.notify(
-            `[vsa] topology rebuilt: ${watcher.lookup.slices().length} slices`,
+            `[vsa] topologie přestavěna: ${watcher.lookup.slices().length} řezů`,
             "info",
           );
           return;
@@ -398,13 +401,95 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
           if (!watcher.config.enabled && watcher.config.statusLine) {
             ctx.ui.setStatus(STATUS_KEY, undefined);
           }
-          ctx.ui.notify(`[vsa] enabled = ${watcher.config.enabled}`, "info");
+          ctx.ui.notify(`[vsa] zapnuto = ${watcher.config.enabled}`, "info");
           return;
         }
 
+        case "config": {
+          const [action = "list", settingKey, ...valueParts] = rest;
+
+          if (action === "list") {
+            const lines = SETTING_SPECS.map(
+              (spec) => `${spec.key} = ${formatValue(watcher.config[spec.key])}`,
+            );
+            ctx.ui.notify(
+              `[vsa] nastavení (${projectConfigPath(watcher.root)})\n${lines.join("\n")}`,
+              "info",
+            );
+            return;
+          }
+
+          if (action === "get") {
+            if (!settingKey) {
+              ctx.ui.notify("Použití: /vsa config get <klíč>", "warning");
+              return;
+            }
+            const spec = findSetting(settingKey);
+            if (!spec) {
+              ctx.ui.notify(
+                `Neznámé nastavení \`${settingKey}\`. Spusť \`/vsa config\` pro seznam nastavení.`,
+                "warning",
+              );
+              return;
+            }
+            ctx.ui.notify(
+              `${spec.key} = ${formatValue(watcher.config[spec.key])} — ${spec.description}`,
+              "info",
+            );
+            return;
+          }
+
+          if (action === "set") {
+            if (!settingKey) {
+              ctx.ui.notify("Použití: /vsa config set <klíč> <hodnota>", "warning");
+              return;
+            }
+            const spec = findSetting(settingKey);
+            if (!spec) {
+              ctx.ui.notify(
+                `Neznámé nastavení \`${settingKey}\`. Spusť \`/vsa config\` pro seznam nastavení.`,
+                "warning",
+              );
+              return;
+            }
+            const raw = valueParts.join(" ");
+            if (!raw) {
+              ctx.ui.notify(`Použití: /vsa config set ${spec.key} <hodnota>`, "warning");
+              return;
+            }
+            const parsed = parseValue(spec, raw);
+            if (!parsed.ok) {
+              ctx.ui.notify(`[vsa] ${parsed.error}`, "warning");
+              return;
+            }
+            watcher.config = { ...watcher.config, [spec.key]: parsed.value };
+            saveProjectConfig(watcher.root, watcher.config);
+            refreshTopology(ctx);
+            if (!watcher.config.statusLine) ctx.ui.setStatus(STATUS_KEY, undefined);
+            ctx.ui.notify(
+              `[vsa] ${spec.key} = ${formatValue(watcher.config[spec.key])} `
+                + `(uloženo do ${projectConfigPath(watcher.root)})`,
+              "info",
+            );
+            return;
+          }
+
+          ctx.ui.notify(`Neznámá akce config \`${action}\`. Použij: get, set`, "warning");
+          return;
+        }
+
+        case "help":
+          ctx.ui.notify(
+            "Příkazy VSA: /vsa [status | check <cesta> | config [get|set] <klíč> [hodnota] | "
+              + "mode <auto|human|off> | rules | explain | init | rescan | on | off]. "
+              + "Našeptávač argumentů je kontextový a ukazuje nápovědu při psaní.",
+            "info",
+          );
+          return;
+
         default:
           ctx.ui.notify(
-            `Unknown subcommand \`${sub}\`. Try: status, check, mode, rules, explain, init, rescan, on, off`,
+            `Neznámý podpříkaz \`${sub}\`. Zkus: status, check, config, mode, rules, explain, init, rescan, on, off, help`,
             "warning",
           );
       }
@@ -412,16 +497,16 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
   });
 
   pi.registerShortcut("ctrl+shift+v", {
-    description: "Re-check the last edited file against VSA",
+    description: "Znovu zkontrolovat poslední upravený soubor proti VSA",
     handler: async (ctx) => {
       const watcher = ensureState(ctx);
       if (!watcher.last) {
-        ctx.ui.notify("[vsa] nothing analyzed yet", "warning");
+        ctx.ui.notify("[vsa] zatím nic neanalyzováno", "warning");
         return;
       }
       const content = readTextSafe(watcher.last.abs);
       if (content === null) {
-        ctx.ui.notify(`[vsa] cannot read ${watcher.last.file}`, "error");
+        ctx.ui.notify(`[vsa] nelze přečíst ${watcher.last.file}`, "error");
         return;
       }
       const report = analyze(watcher, watcher.last.abs, watcher.last.file, content);

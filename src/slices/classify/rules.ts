@@ -72,17 +72,17 @@ function crossSliceDeepImport(facts: EnrichedFacts): Finding[] {
     const entryRel = entry ? relPosix(facts.projectRoot, entry) : null;
 
     const detail = entryRel
-      ? `\`${facts.file.rel}\` lives in slice \`${facts.slice.id}\` but reaches into `
-        + `\`${target.id}\` internals via \`${dep.edge.specifier}\` (line ${dep.edge.line}). `
-        + `Slices are vertical: they may only depend on each other's public surface.`
-      : `\`${facts.file.rel}\` (slice \`${facts.slice.id}\`) imports \`${dep.edge.specifier}\` `
-        + `from slice \`${target.id}\`, which has no public entry. Slices may only depend `
-        + `on each other's public surface.`;
+      ? `\`${facts.file.rel}\` žije v řezu \`${facts.slice.id}\`, ale sahá do vnitřku `
+        + `\`${target.id}\` přes \`${dep.edge.specifier}\` (řádek ${dep.edge.line}). `
+        + `Řezy jsou vertikální: mohou záviset jen na veřejném rozhraní ostatních.`
+      : `\`${facts.file.rel}\` (řez \`${facts.slice.id}\`) importuje \`${dep.edge.specifier}\` `
+        + `z řezu \`${target.id}\`, který nemá veřejný vstup. Řezy mohou záviset jen `
+        + `na veřejném rozhraní ostatních.`;
 
     const suggestion = entryRel
-      ? `Import \`${entryRel}\` instead, or move the shared logic into a shared kernel module.`
-      : `Create \`${target.id}/${facts.config.publicEntries[0]}.ts\` that re-exports only what `
-        + `consumers need, then import that instead.`;
+      ? `Importuj místo toho \`${entryRel}\`, nebo přesuň sdílenou logiku do modulu sdíleného jádra.`
+      : `Vytvoř \`${target.id}/${facts.config.publicEntries[0]}.ts\`, které re-exportuje jen to, `
+        + `co spotřebitelé potřebují, a importuj to.`;
 
     const fix = entry
       ? retargetSpecifier(dep.edge.specifier, facts.file.path, entry)
@@ -132,12 +132,12 @@ function crossSliceCycle(facts: EnrichedFacts): Finding[] {
         "cross-slice-cycle",
         "error",
         facts,
-        `Slice cycle \`${home.id}\` <-> \`${target.id}\``,
-        `\`${home.id}\` depends on \`${target.id}\` (line ${dep.edge.line}) and `
-          + `\`${target.id}\` depends back on \`${home.id}\` via `
-          + `\`${backEdges[0]!.specifier}\`. Slices must form a directed graph.`,
-        `Break the loop: extract the shared contract into the shared kernel, or invert one `
-          + `side behind an event/port owned by \`${home.id}\`.`,
+        `Cyklická závislost řezů \`${home.id}\` <-> \`${target.id}\``,
+        `\`${home.id}\` závisí na \`${target.id}\` (řádek ${dep.edge.line}) a `
+          + `\`${target.id}\` závisí zpět na \`${home.id}\` přes `
+          + `\`${backEdges[0]!.specifier}\`. Řezy musí tvořit orientovaný graf.`,
+        `Přeruš smyčku: vytáhni sdílený kontrakt do sdíleného jádra, nebo obrať jednu `
+          + `stranu za událost/port vlastněný řezem \`${home.id}\`.`,
         dep.edge.line,
       ),
     );
@@ -159,12 +159,12 @@ function sharedDependsOnSlice(facts: EnrichedFacts): Finding[] {
         "shared-depends-on-slice",
         "error",
         facts,
-        `Shared kernel depends on slice \`${dep.targetSlice.id}\``,
-        `\`${facts.file.rel}\` is part of the shared kernel (\`${facts.shared}\`) but imports `
-          + `\`${dep.edge.specifier}\` from slice \`${dep.targetSlice.id}\` (line ${dep.edge.line}). `
-          + `The kernel must not know about feature slices.`,
-        `Invert the dependency: let the slice pass the data in, or move the abstraction down `
-          + `into \`${facts.shared}\`.`,
+        `Sdílené jádro závisí na řezu \`${dep.targetSlice.id}\``,
+        `\`${facts.file.rel}\` je součást sdíleného jádra (\`${facts.shared}\`), ale importuje `
+          + `\`${dep.edge.specifier}\` z řezu \`${dep.targetSlice.id}\` (řádek ${dep.edge.line}). `
+          + `Jádro nesmí znát feature řezy.`,
+        `Obrať závislost: nech řez předat data dovnitř, nebo přesuň abstrakci dolů `
+          + `do \`${facts.shared}\`.`,
         dep.edge.line,
       ),
     );
@@ -193,11 +193,11 @@ function orphanDomainFile(facts: EnrichedFacts): Finding[] {
         "orphan-domain-file",
         "warning",
         facts,
-        `Slice \`${named}\` logic lives outside the slice`,
-        `\`${facts.file.rel}\` is not inside any slice directory yet its name carries the `
-          + `\`${named}\` domain. Vertical slices own their files end to end.`,
-        `Move it under \`${facts.config.roots[0]}/${named}/\`, or rename it if it is genuinely `
-          + `generic and belongs in the shared kernel.`,
+        `Logika řezu \`${named}\` žije mimo řez`,
+        `\`${facts.file.rel}\` není uvnitř žádného řezu, ale jeho název nese `
+          + `doménu \`${named}\`. Vertikální řezy vlastní své soubory od začátku do konce.`,
+        `Přesuň ho pod \`${facts.config.roots[0]}/${named}/\`, nebo ho přejmenuj, pokud je opravdu `
+          + `generický a patří do sdíleného jádra.`,
       ),
     );
     return out;
@@ -217,11 +217,11 @@ function orphanDomainFile(facts: EnrichedFacts): Finding[] {
         "orphan-domain-file",
         "hint",
         facts,
-        `Generic file carries slice domain vocabulary`,
-        `\`${facts.file.rel}\` sits outside every slice but references `
-          + `${mentions.map((m) => `\`${m}\``).join(", ")} repeatedly.`,
-        `If this module serves ${mentions.length > 1 ? "those slices" : "that slice"}, colocate it `
-          + `inside the slice; keep only true cross-cutting code in the shared kernel.`,
+        `Generický soubor nese slovník domény řezu`,
+        `\`${facts.file.rel}\` leží mimo všechny řezy, ale opakovaně odkazuje na `
+          + `${mentions.map((m) => `\`${m}\``).join(", ")}.`,
+        `Pokud tento modul slouží ${mentions.length > 1 ? "těmto řezům" : "tomuto řezu"}, umísti ho `
+          + `do řezu; ve sdíleném jádru nech jen skutečně průřezový kód.`,
       ),
     );
   }
@@ -247,11 +247,11 @@ function sliceFanOut(facts: EnrichedFacts): Finding[] {
         "slice-fan-out",
         "warning",
         facts,
-        `Slice \`${facts.slice.id}\` reaches ${others.size} other slices`,
-        `A slice should orchestrate at most ${facts.config.maxSliceFanOut} peers; this file alone `
-          + `touches ${[...others].map((o) => `\`${o}\``).join(", ")}.`,
-        `Consider merging the collaborating slices, or introduce an application-level `
-          + `coordinator that composes them outside the slice.`,
+        `Řez \`${facts.slice.id}\` sahá na ${others.size} dalších řezů`,
+        `Řez by měl orchestrovat nejvýše ${facts.config.maxSliceFanOut} sousedů; tento soubor sám `
+          + `se dotýká ${[...others].map((o) => `\`${o}\``).join(", ")}.`,
+        `Zvaž sloučení spolupracujících řezů, nebo zaveď aplikační `
+          + `koordinátor, který je skládá mimo řez.`,
       ),
     );
   }
@@ -275,10 +275,10 @@ function barrelLeak(facts: EnrichedFacts): Finding[] {
         "barrel-leak",
         "hint",
         facts,
-        `Public entry leaks internals of \`${facts.slice.id}\``,
-        `\`${facts.file.rel}\` re-exports \`${dep.edge.specifier}\` (line ${dep.edge.line}), `
-          + `exposing internals as part of the slice's public surface.`,
-        `Export only the slice's use cases and DTOs, and keep implementation modules private.`,
+        `Veřejný vstup uniká vnitřek řezu \`${facts.slice.id}\``,
+        `\`${facts.file.rel}\` re-exportuje \`${dep.edge.specifier}\` (řádek ${dep.edge.line}) `
+          + `a vystavuje vnitřek jako součást veřejného rozhraní řezu.`,
+        `Exportuj jen use-casy a DTO řezu, implementační moduly nech soukromé.`,
         dep.edge.line,
       ),
     );
@@ -302,12 +302,12 @@ function sharedAbuse(facts: EnrichedFacts): Finding[] {
       "shared-abuse",
       "hint",
       facts,
-      `Heavy reliance on the shared kernel`,
-      `\`${facts.file.rel}\` imports ${fromShared.length} modules from ${roots} `
-        + `(budget ${facts.config.maxSharedImports}). A growing kernel is a horizontal layer in `
-        + `disguise.`,
-      `Prefer a slice-local module; promote code to the kernel only when at least two slices `
-        + `genuinely need it.`,
+      `Silná závislost na sdíleném jádru`,
+      `\`${facts.file.rel}\` importuje ${fromShared.length} modulů z ${roots} `
+        + `(limit ${facts.config.maxSharedImports}). Rostoucí jádro je skrytá horizontální `
+        + `vrstva.`,
+      `Preferuj modul v rámci řezu; kód povyš do jádra jen když ho skutečně potřebují alespoň `
+        + `dva řezy.`,
     ),
   );
   return out;
@@ -340,9 +340,9 @@ function looseSliceFile(facts: EnrichedFacts): Finding[] {
         "loose-slice-file",
         "warning",
         facts,
-        `\`${foreign}\` domain placed inside slice \`${home}\``,
-        `\`${facts.file.rel}\` belongs to slice \`${foreign}\` by name but sits in \`${home}\`.`,
-        `Move it to \`${facts.config.roots[0]}/${foreign}/\`, together with the rest of that slice.`,
+        `Doména \`${foreign}\` je uvnitř řezu \`${home}\``,
+        `\`${facts.file.rel}\` patří podle názvu řezu \`${foreign}\`, ale leží v \`${home}\`.`,
+        `Přesuň ho do \`${facts.config.roots[0]}/${foreign}/\` spolu se zbytkem řezu.`,
       ),
     );
     return out;
@@ -354,11 +354,11 @@ function looseSliceFile(facts: EnrichedFacts): Finding[] {
         "loose-slice-file",
         "hint",
         facts,
-        `Generic module inside slice \`${home}\``,
-        `\`${facts.file.rel}\` is a name-based grab bag. Vertical slices name files after the `
-          + `capability they implement.`,
-        `Name it after the use case (for example \`cancel-subscription.ts\`) so the slice stays `
-          + `navigable, or move it to the shared kernel if it is truly generic.`,
+        `Generický modul uvnitř řezu \`${home}\``,
+        `\`${facts.file.rel}\` je sbírka bez významu podle názvu. Vertikální řezy pojmenovávají `
+          + `soubory podle schopnosti, kterou implementují.`,
+        `Pojmenuj ho podle use-casu (např. \`cancel-subscription.ts\`), aby řez zůstal `
+          + `čitelný, nebo ho přesuň do sdíleného jádra, pokud je opravdu generický.`,
       ),
     );
   }
@@ -375,11 +375,11 @@ function missingPublicEntry(facts: EnrichedFacts): Finding[] {
       "slice-missing-entry",
       "hint",
       facts,
-      `Slice \`${facts.slice.id}\` has no public entry`,
-      `Files in \`${facts.slice.id}\` cannot be consumed safely without a declared surface, so `
-        + `consumers are forced into deep imports.`,
-      `Add \`${facts.slice.id}/${facts.config.publicEntries[0]}.ts\` exporting only the slice's `
-        + `use cases and DTOs.`,
+      `Řez \`${facts.slice.id}\` nemá veřejný vstup`,
+      `Soubory v \`${facts.slice.id}\` nelze bezpečně použít bez deklarovaného rozhraní, takže `
+        + `spotřebitelé jsou nuceni k hlubokým importům.`,
+      `Přidej \`${facts.slice.id}/${facts.config.publicEntries[0]}.ts\` exportující jen use-casy `
+        + `a DTO řezu.`,
     ),
   ];
 }
@@ -398,10 +398,10 @@ function fileInSliceRoot(facts: EnrichedFacts): Finding[] {
       "file-in-slice-root",
       "hint",
       facts,
-      `File sits directly in the slice root`,
-      `\`${facts.file.rel}\` is inside \`${parentRel}\`, which is the container for slices, not a `
-        + `slice itself.`,
-      `Move it into the slice it serves, or outside \`${parentRel}\` if it is shared.`,
+      `Soubor leží přímo v kořeni řezů`,
+      `\`${facts.file.rel}\` je uvnitř \`${parentRel}\`, což je kontejner pro řezy, ne `
+        + `samotný řez.`,
+      `Přesuň ho do řezu, kterému slouží, nebo mimo \`${parentRel}\`, pokud je sdílený.`,
     ),
   ];
 }
@@ -425,52 +425,52 @@ export const RULE_CATALOGUE: ReadonlyArray<[string, Finding["severity"], string]
   [
     "cross-slice-deep-import",
     "error",
-    "A slice reaches into another slice's internals instead of its public entry.",
+    "Řez sahá do vnitřku jiného řezu místo na jeho veřejný vstup.",
   ],
   [
     "cross-slice-cycle",
     "error",
-    "Two slices import each other, forming a cycle in the slice graph.",
+    "Dva řezy se importují navzájem, tvoří cyklus v grafu řezů.",
   ],
   [
     "shared-depends-on-slice",
     "error",
-    "The shared kernel imports a feature slice, inverting the intended layering.",
+    "Sdílené jádro importuje feature řez, obrací zamýšlené vrstvení.",
   ],
   [
     "orphan-domain-file",
     "warning",
-    "A file outside every slice carries slice domain vocabulary or naming.",
+    "Soubor mimo všechny řezy nese slovník nebo pojmenování domény řezu.",
   ],
   [
     "slice-fan-out",
     "warning",
-    "A slice depends on more peer slices than the configured budget.",
+    "Řez závisí na více sousedních řezech, než je nastavený rozpočet.",
   ],
   [
     "barrel-leak",
     "hint",
-    "A slice's public entry re-exports internals, widening its surface.",
+    "Veřejný vstup řezu re-exportuje vnitřky a rozšiřuje tak své rozhraní.",
   ],
   [
     "shared-abuse",
     "hint",
-    "A file pulls many modules from the shared kernel — a hidden horizontal layer.",
+    "Soubor táhne mnoho modulů ze sdíleného jádra — skrytá horizontální vrstva.",
   ],
   [
     "loose-slice-file",
     "warning",
-    "A generic or foreign-domain module lives inside the wrong slice.",
+    "Generický nebo cizí doménový modul žije ve špatném řezu.",
   ],
   [
     "slice-missing-entry",
     "hint",
-    "A slice directory has no public entry, forcing consumers into deep imports.",
+    "Adresář řezu nemá veřejný vstup, nutí spotřebitele k hlubokým importům.",
   ],
   [
     "file-in-slice-root",
     "hint",
-    "A file sits directly in the slice container directory instead of a slice.",
+    "Soubor leží přímo v kontejneru řezů místo v řezu.",
   ],
 ];
 

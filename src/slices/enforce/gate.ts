@@ -27,12 +27,12 @@ export interface GateInputs {
 
 export function decideGate({ report, config, hasUI }: GateInputs): GateDecision {
   if (!config.enabled || config.mode === "off") {
-    return { action: "pass", severity: "clean", reason: "watcher disabled" };
+    return { action: "pass", severity: "clean", reason: "watcher vypnut" };
   }
 
   const top = strongest(report.findings);
   if (top === "clean") {
-    return { action: "pass", severity: "clean", reason: "no violations" };
+    return { action: "pass", severity: "clean", reason: "žádná porušení" };
   }
 
   const reason = formatOneLiner(report);
@@ -44,8 +44,8 @@ export function decideGate({ report, config, hasUI }: GateInputs): GateDecision 
       : {
           action: "block",
           severity: top,
-          reason: `${reason}\nRerun with an interactive session, raise the violations, or set `
-            + `\`blockAt\` to "never" in .pi/architecture-watcher.json.`,
+          reason: `${reason}\nSpusť znovu v interaktivní relaci, oprav porušení, nebo nastav `
+            + `\`blockAt\` na "never" v .pi/architecture-watcher.json.`,
           injection,
         };
   }
