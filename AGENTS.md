@@ -25,7 +25,7 @@ npm test        # tsc && node --test dist/test/*.test.js
 
 ## Hard rules
 - Node built-ins only, plus `typebox` for tool schemas. No other runtime deps.
-- `src/**` imports use explicit `.js` extensions (NodeNext). Tests import `../index.js`.
+- `src/**` imports use explicit `.js` extensions (NodeNext); tests import `../src/**.js` the same way.
 - Pure functions. No global mutable state outside `index.ts`. Never touch network or an LLM.
 - New detection rule = one function in `classify/rules.ts` + one test in `test/classify.test.ts`.
 - New config knob = field in `WatcherConfig` (`shared/types.ts`) + default in `shared/config.ts`.
