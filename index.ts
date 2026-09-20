@@ -46,6 +46,7 @@ import {
   formatReport,
   formatRuleCatalogue,
   formatStatus,
+  formatWatching,
 } from "./src/slices/report/index.js";
 import { decideGate } from "./src/slices/enforce/index.js";
 import {
@@ -165,7 +166,7 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
 
   const publishStatus = (ctx: ExtensionContext, watcher: WatcherState, report: Report): void => {
     if (!watcher.config.statusLine) return;
-    ctx.ui.setStatus(STATUS_KEY, formatStatus(report));
+    ctx.ui.setStatus(STATUS_KEY, formatStatus(report, { mode: watcher.config.mode, theme: ctx.ui.theme }));
   };
 
   // --- Pi wiring -----------------------------------------------------------
@@ -174,7 +175,7 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
     state = createState(ctx.cwd);
     if (state.config.enabled && state.config.statusLine) {
       const sliceCount = state.lookup.slices().length;
-      ctx.ui.setStatus(STATUS_KEY, `VSA sleduje ${sliceCount} řezů · režim ${state.config.mode}`);
+      ctx.ui.setStatus(STATUS_KEY, formatWatching(sliceCount, state.config.mode, ctx.ui.theme));
     }
   });
 

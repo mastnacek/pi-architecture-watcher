@@ -10,4 +10,7 @@ export {
   formatReport,
   formatRuleCatalogue,
   formatStatus,
+  formatWatching,
+  languageEmoji,
+  type StatusTheme,
 } from "./format.js";
