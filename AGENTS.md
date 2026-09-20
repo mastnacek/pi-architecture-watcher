@@ -1,7 +1,7 @@
 # pi-architecture-watcher — build guide
 
 Static **VSA** (Vertical Slice Architecture) monitor for the Pi coding agent.
-No LLM. It tokenizes imports (TS/JS, Python, Rust, Java, Kotlin, Go), maps slices, scores drift, and warns like an LSP.
+No LLM in the detection path by default. It tokenizes imports (TS/JS, Python, Rust, Java, Kotlin, Go), maps slices, scores drift, and warns like an LSP. An *opt-in* `archdetect` slice can additionally call the TypeSafe Jev decision model to detect the architecture.
 
 ## Layout (this plugin is itself VSA)
 - `index.ts`             composition root — Pi adapter only, no logic
@@ -12,6 +12,7 @@ No LLM. It tokenizes imports (TS/JS, Python, Rust, Java, Kotlin, Go), maps slice
 - `src/slices/report/`   `Report -> markdown / status / injection`
 - `src/slices/enforce/`  `Report + mode -> GateDecision` (auto | human)
 - `src/slices/settings/` `WatcherConfig -> validated knobs + /vsa completions`
+- `src/slices/archdetect/` `topology -> architecture label + shallow-module flag` (opt-in, network)
 - `test/`                `node:test` suites
 
 **Rule: slices never import each other.** They depend on `src/shared` only; `index.ts` wires them.
@@ -27,7 +28,7 @@ npm test        # tsc && node --test dist/test/*.test.js
 ## Hard rules
 - Node built-ins only, plus `typebox` for tool schemas. No other runtime deps.
 - `src/**` imports use explicit `.js` extensions (NodeNext); tests import `../src/**.js` the same way.
-- Pure functions. No global mutable state outside `index.ts`. Never touch network or an LLM.
+- Pure functions. No global mutable state outside `index.ts`. Never touch network or an LLM **in detection** — the only exception is `archdetect/systemone.ts`, and it runs only when `detectArchitecture` is true.
 - New detection rule = one function in `classify/rules.ts` + one test in `test/classify.test.ts`.
 - New language = one scanner in `scan/<lang>.ts` + a `languageOf` entry in `shared/languages.ts` + a resolver branch in `shared/paths.ts` + tests in `test/languages.test.ts`.
 - New config knob = field in `WatcherConfig` (`shared/types.ts`) + default in `shared/config.ts`.

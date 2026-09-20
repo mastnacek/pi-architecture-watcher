@@ -52,6 +52,16 @@ test("top-level completions list subcommands with help", () => {
   assert.equal(config.value, "config ");
   assert.match(config.description, /nastavení/i);
 
+  const detect = completeVsaArguments("det", DEFAULT_CONFIG)?.[0];
+  assert.ok(detect);
+  assert.equal(detect.value, "detect");
+  assert.match(detect.description, /Jev/i);
+
+  const depth = completeVsaArguments("dep", DEFAULT_CONFIG)?.[0];
+  assert.ok(depth);
+  assert.equal(depth.value, "depth");
+  assert.match(depth.description, /hloubky/i);
+
   const all = completeVsaArguments("", DEFAULT_CONFIG);
   assert.ok(all && all.some((i) => i.value === "help"));
 });

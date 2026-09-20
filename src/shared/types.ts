@@ -18,6 +18,30 @@ export type Verdict = "clean" | "drift" | "violation" | "severe";
 /** Where a slice is allowed to expose its surface. */
 export type PublicEntryMode = "entry-only" | "root-level";
 
+/**
+ * Architectures the watcher can detect and score against.
+ *
+ * `vsa` is the default; the others select alternative topology mappings and
+ * drift rules. The ordered list below is the canonical enum the detection
+ * registry, the config validator and the settings catalogue all share.
+ */
+export type ArchitectureId =
+  | "vsa"
+  | "clean"
+  | "hexagonal"
+  | "layered"
+  | "modular-monolith"
+  | "fsd";
+
+export const ARCHITECTURE_IDS: readonly ArchitectureId[] = [
+  "vsa",
+  "clean",
+  "hexagonal",
+  "layered",
+  "modular-monolith",
+  "fsd",
+];
+
 export type ImportKind =
   | "static"
   | "side-effect"
@@ -161,4 +185,10 @@ export interface WatcherConfig {
   autoFixImports: boolean;
   /** keep an LSP-like status entry up to date */
   statusLine: boolean;
+  /** allow detection (calls the Jev decision model over the network) */
+  detectArchitecture: boolean;
+  /** which architecture the topology and drift rules target */
+  architecture: ArchitectureId;
+  /** decision model id used by `/vsa detect` */
+  detectionModel: string;
 }

@@ -10,7 +10,14 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { ALL_SOURCE_EXTENSIONS } from "./languages.js";
 import { readTextSafe } from "./paths.js";
-import type { PublicEntryMode, Severity, Mode, WatcherConfig } from "./types.js";
+import {
+  ARCHITECTURE_IDS,
+  type ArchitectureId,
+  type PublicEntryMode,
+  type Severity,
+  type Mode,
+  type WatcherConfig,
+} from "./types.js";
 
 export const CONFIG_FILENAME = "architecture-watcher.json";
 
@@ -58,11 +65,15 @@ export const DEFAULT_CONFIG: WatcherConfig = {
   injectFixes: true,
   autoFixImports: false,
   statusLine: true,
+  detectArchitecture: false,
+  architecture: "vsa",
+  detectionModel: "jev-latest",
 };
 
 const SEVERITIES: readonly Severity[] = ["hint", "warning", "error"];
 const MODES: readonly Mode[] = ["auto", "human", "off"];
 const ENTRY_MODES: readonly PublicEntryMode[] = ["entry-only", "root-level"];
+const ARCHITECTURES: readonly ArchitectureId[] = [...ARCHITECTURE_IDS];
 
 /** Global config path: `~/.pi/agent/architecture-watcher.json`. */
 export function globalConfigPath(agentDir?: string): string {
@@ -145,6 +156,11 @@ export function mergeConfig(base: WatcherConfig, raw: Record<string, unknown>): 
     injectFixes: asBoolean(raw.injectFixes, base.injectFixes),
     autoFixImports: asBoolean(raw.autoFixImports, base.autoFixImports),
     statusLine: asBoolean(raw.statusLine, base.statusLine),
+    detectArchitecture: asBoolean(raw.detectArchitecture, base.detectArchitecture),
+    architecture: asOneOf(raw.architecture, ARCHITECTURES, base.architecture),
+    detectionModel: typeof raw.detectionModel === "string" && raw.detectionModel.length > 0
+      ? raw.detectionModel
+      : base.detectionModel,
   };
 }
 

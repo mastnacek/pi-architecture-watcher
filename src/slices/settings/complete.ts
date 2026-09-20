@@ -32,6 +32,8 @@ export const VSA_SUBCOMMANDS: readonly Suggestion[] = [
   { value: "explain", description: "Znovu vypsat poslední report" },
   { value: "init", description: "Zapsat výchozí .pi/architecture-watcher.json" },
   { value: "rescan", description: "Přestavět topologii řezů" },
+  { value: "detect", description: "Detekovat architekturu přes decision model Jev" },
+  { value: "depth", description: "Statický odhad hloubky modulů (mělké/hluboké)" },
   { value: "on", description: "Zapnout watcher" },
   { value: "off", description: "Vypnout watcher" },
   { value: "help", description: "Zobrazit nápovědu" },

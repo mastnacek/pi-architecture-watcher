@@ -57,6 +57,7 @@ import {
   parseValue,
   SETTING_SPECS,
 } from "./src/slices/settings/index.js";
+import { detectArchitecture, findArchetype, estimateDepth } from "./src/slices/archdetect/index.js";
 
 const STATUS_KEY = "vsa";
 
@@ -313,7 +314,7 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
   pi.registerCommand("vsa", {
     description:
       "Vertical Slice Architecture watcher: `/vsa [status|check <path>|config [get|set] <key> [value]|"
-      + "mode <auto|human|off>|rules|explain|init|rescan|on|off|help]`",
+      + "mode <auto|human|off>|rules|explain|init|detect|depth|rescan|on|off|help]`",
     getArgumentCompletions: (prefix) =>
       completeVsaArguments(prefix, state?.config ?? DEFAULT_CONFIG),
     handler: async (args, ctx) => {
@@ -394,6 +395,52 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
             `[vsa] topologie přestavěna: ${watcher.lookup.slices().length} řezů`,
             "info",
           );
+          return;
+        }
+
+        case "detect": {
+          if (!watcher.config.detectArchitecture) {
+            ctx.ui.notify(
+              "[vsa] detekce architektury je vypnutá. Zapni ji: `/vsa config set detectArchitecture true`",
+              "warning",
+            );
+            return;
+          }
+          ctx.ui.notify("[vsa] spouštím detekci architektury přes decision model…", "info");
+          const result = await detectArchitecture(watcher.lookup, watcher.config);
+          if (!result.ok) {
+            ctx.ui.notify(`[vsa] detekce selhala: ${result.reason}`, "error");
+            return;
+          }
+          const d = result.detection;
+          const archetype = findArchetype(d.architecture);
+          watcher.config = { ...watcher.config, architecture: d.architecture };
+          saveProjectConfig(watcher.root, watcher.config);
+          refreshTopology(ctx);
+          const pct = Math.round(d.confidence * 100);
+          ctx.ui.notify(
+            `Detekovaná architektura: ${archetype?.label ?? d.architecture} (jistota ${pct}%)\n`
+              + `model: ${d.model ?? "—"} · náklad $${d.cost ?? 0}\n`
+              + `uloženo → ${projectConfigPath(watcher.root)}`,
+            "info",
+          );
+          return;
+        }
+
+        case "depth": {
+          const depth = estimateDepth(watcher.lookup, watcher.config);
+          const shallowPct = Math.round(depth.shallowFraction * 100);
+          const lines = [
+            "Hloubka modulů (statický odhad, bez modelu)",
+            `vzorkováno: ${depth.sampled} souborů`,
+            `prům. hloubka (impl/interface): ${depth.avgDepth.toFixed(1)}`,
+            `podíl mělkých modulů: ${shallowPct}%`,
+          ];
+          if (depth.shallowFiles.length > 0) {
+            lines.push("", `nejměltější moduly (${depth.shallowFiles.length}):`);
+            for (const rel of depth.shallowFiles) lines.push(`  - ${rel}`);
+          }
+          ctx.ui.notify(lines.join("\n"), "info");
           return;
         }
 
@@ -484,7 +531,7 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
         case "help":
           ctx.ui.notify(
             "Příkazy VSA: /vsa [status | check <cesta> | config [get|set] <klíč> [hodnota] | "
-              + "mode <auto|human|off> | rules | explain | init | rescan | on | off]. "
+              + "mode <auto|human|off> | rules | explain | init | detect | depth | rescan | on | off]. "
               + "Našeptávač argumentů je kontextový a ukazuje nápovědu při psaní.",
             "info",
           );
@@ -492,7 +539,7 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
 
         default:
           ctx.ui.notify(
-            `Neznámý podpříkaz \`${sub}\`. Zkus: status, check, config, mode, rules, explain, init, rescan, on, off, help`,
+            `Neznámý podpříkaz \`${sub}\`. Zkus: status, check, config, mode, rules, explain, init, detect, depth, rescan, on, off, help`,
             "warning",
           );
       }

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-09-20T11:08:22.921Z",
+  "lastUpdated": "2026-09-20T15:00:00.000Z",
   "records": [
     {
       "id": "ADR-001",
@@ -32,6 +32,14 @@
       "date": "2026-09-20 13:08:22",
       "file": "2026-09-20-ADR-004-architectural-workaround-constraint.md",
       "constraint": "Architectural Workaround & Constraint: Architectural Workaround & Constraint",
+      "status": "active"
+    },
+    {
+      "id": "ADR-008",
+      "title": "Network + decision-model architecture detection (Jev System One)",
+      "date": "2026-09-20 14:41:24",
+      "file": "2026-09-20-ADR-008-network-decision-model-architecture-detection-jev-.md",
+      "constraint": "Network + decision-model architecture detection (Jev System One): Add an opt-in archdetect slice that calls the TypeSafe Jev decision model (~typesafe/jev-latest → typesafe/jev-1.13) over OpenRouter's /api/v1/systemone endpoint. Jev is queried with a single typed choice question, not chat; deep/shallow modules stay a static heuristic. Gated behind detectArchitecture (default false); /vsa detect persists the chosen architecture.",
       "status": "active"
     }
   ]

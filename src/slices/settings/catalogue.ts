@@ -7,7 +7,7 @@
  * or any other slice.
  */
 
-import type { WatcherConfig } from "../../shared/types.js";
+import { ARCHITECTURE_IDS, type WatcherConfig } from "../../shared/types.js";
 
 export type SettingKind = "boolean" | "enum" | "number" | "list";
 
@@ -96,6 +96,34 @@ export const SETTING_SPECS: readonly SettingSpec[] = [
     key: "statusLine",
     kind: "boolean",
     description: "Udržovat stavový řádek podobný LSP",
+  },
+  {
+    key: "detectArchitecture",
+    kind: "boolean",
+    description: "Povolit detekci architektury přes model Jev (vyžaduje síť)",
+  },
+  {
+    key: "architecture",
+    kind: "enum",
+    description: "Cílová architektura pro topologii a pravidla driftu",
+    values: [...ARCHITECTURE_IDS],
+    valueHelp: {
+      vsa: "Vertical Slice: každý řez vlastní UI, logiku i data",
+      clean: "Clean: vrstvy domain / application / infrastructure",
+      hexagonal: "Hexagonal: jádro s porty a adaptéry",
+      layered: "Vrstvy: controller → service → repository",
+      "modular-monolith": "Monolit s oddělenými vnitřními moduly",
+      fsd: "Feature-Sliced Design: vrstvy podle feature",
+    },
+  },
+  {
+    key: "detectionModel",
+    kind: "enum",
+    description: "Decision model použitý příkazem /vsa detect",
+    values: ["jev-latest"],
+    valueHelp: {
+      "jev-latest": "TypeSafe Jev — rychlý strukturovaný decision model (zdarma completion)",
+    },
   },
   {
     key: "roots",
