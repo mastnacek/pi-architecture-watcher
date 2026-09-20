@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-09-20T20:10:13.537Z",
+  "lastUpdated": "2026-09-20T20:27:10.064Z",
   "records": [
     {
       "id": "ADR-001",
@@ -120,6 +120,30 @@
       "date": "2026-09-20 22:10:13",
       "file": "2026-09-20-ADR-018-pi-architecture-watcher010-test.md",
       "constraint": "> pi-architecture-watcher@0.1.0 test: Successfully replaced 1 block(s) in /home/jara/100_projects/pi/plugins/pi-architecture-watcher/src/slices/archdetect-needle/schema.ts.",
+      "status": "active"
+    },
+    {
+      "id": "ADR-019",
+      "title": "[main 84c9704] feat: Needle WASM integration for local architecture de",
+      "date": "2026-09-20 22:12:26",
+      "file": "2026-09-20-ADR-019-main-84c9704-feat-needle-wasm-integration-for-loca.md",
+      "constraint": "[main 84c9704] feat: Needle WASM integration for local architecture de: [main 84c9704] feat: Needle WASM integration for local architecture de",
+      "status": "active"
+    },
+    {
+      "id": "ADR-020",
+      "title": "/ which architecture the topology and drift rules target /",
+      "date": "2026-09-20 22:15:37",
+      "file": "2026-09-20-ADR-020-which-architecture-the-topology-and-drift-rules-ta.md",
+      "constraint": "/ which architecture the topology and drift rules target /: / which architecture the topology and drift rules target /",
+      "status": "active"
+    },
+    {
+      "id": "ADR-021",
+      "title": "Successfully replaced 1 block(s) in /home/jara/100_projects/pi/plugins",
+      "date": "2026-09-20 22:27:10",
+      "file": "2026-09-20-ADR-021-successfully-replaced-1-blocks-in-homejara100-proj.md",
+      "constraint": "Successfully replaced 1 block(s) in /home/jara/100_projects/pi/plugins: Successfully replaced 1 block(s) in /home/jara/100_projects/pi/plugins/pi-architecture-watcher/index.ts.",
       "status": "active"
     }
   ]

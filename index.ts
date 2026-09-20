@@ -222,6 +222,58 @@ async function showArchitectureDetectionModal(
 ): Promise<void> {
   const modal = new ArchDetectModal({
     onEngineSelect: async (engine: DetectionEngine) => {
+      if (engine === "compare") {
+        // Run both Jev and Needle for comparison
+        modal.startComparing();
+        try {
+          // Run Jev
+          modal.updateComparisonProgress("Running Jev (OpenRouter)...", 0.2);
+          const jevResult = await detectArchitecture(state.lookup, state.config, {
+            apiKey: resolveOpenRouterKey(),
+          });
+
+          let jevDetection: ModalDetectionResult | null = null;
+          if (jevResult.ok) {
+            const d = jevResult.detection;
+            jevDetection = {
+              engine: "jev",
+              architecture: d.architecture,
+              confidence: d.confidence,
+              reasoning: d.digest,
+              digest: d.digest,
+              cost: d.cost,
+            };
+          }
+          modal.updateComparisonProgress("Jev done, starting Needle...", 0.5, jevDetection!);
+
+          // Run Needle
+          const needleOptions: NeedleDetectOptions = {
+            onProgress: (stage, progress) => {
+              modal.updateComparisonProgress(stage, progress * 0.5 + 0.5);
+            },
+          };
+          const needleResult = await detectArchitectureNeedle(state.lookup, state.config, needleOptions);
+
+          let needleDetection: ModalDetectionResult | null = null;
+          if (needleResult.ok) {
+            const d = needleResult.detection;
+            needleDetection = {
+              engine: "needle",
+              architecture: d.architecture,
+              confidence: d.confidence,
+              reasoning: d.digest,
+              digest: d.digest,
+              cost: 0,
+            };
+          }
+
+          modal.showComparison(jevDetection, needleDetection);
+        } catch (err) {
+          modal.showError(err instanceof Error ? err.message : String(err));
+        }
+        return;
+      }
+
       modal.startDownloading(engine);
 
       try {
