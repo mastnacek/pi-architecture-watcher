@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-09-20T14:27:30.564Z",
+  "lastUpdated": "2026-09-20T20:10:13.537Z",
   "records": [
     {
       "id": "ADR-001",
@@ -64,6 +64,62 @@
       "date": "2026-09-20 16:27:30",
       "file": "2026-09-20-ADR-011-aktuln-stav-vdy-b-10-hardcoded-pravidel-vsa-bez-oh.md",
       "constraint": "- Aktuální stav: Vždy běží 10 hardcoded pravidel VSA bez ohledu na con: - Aktuální stav: Vždy běží 10 hardcoded pravidel VSA bez ohledu na con",
+      "status": "active"
+    },
+    {
+      "id": "ADR-012",
+      "title": "[main 95a028f] feat: architecture-specific rules for VSA, Clean, Hexag",
+      "date": "2026-09-20 18:23:36",
+      "file": "2026-09-20-ADR-012-main-95a028f-feat-architecture-specific-rules-for-.md",
+      "constraint": "[main 95a028f] feat: architecture-specific rules for VSA, Clean, Hexag: [main 95a028f] feat: architecture-specific rules for VSA, Clean, Hexag",
+      "status": "active"
+    },
+    {
+      "id": "ADR-013",
+      "title": "Jelikož jste v Herdr s pi-architecture-watcher a pi-subagents:",
+      "date": "2026-09-20 20:44:46",
+      "file": "2026-09-20-ADR-013-jeliko-jste-v-herdr-s-pi-architecture-watcher-a-pi.md",
+      "constraint": "Jelikož jste v Herdr s pi-architecture-watcher a pi-subagents:: /home/jara/.pi/agent/npm/node_modules/pi-subagents/docs/extension-api.md:A project pane runs its own Pi session in the target directory, so subagents launched from that pane use that project's config,",
+      "status": "active"
+    },
+    {
+      "id": "ADR-014",
+      "title": "\"../invoicing/index\",",
+      "date": "2026-09-20 21:03:34",
+      "file": "2026-09-20-ADR-014-invoicingindex.md",
+      "constraint": "\"../invoicing/index\",: \"violation\" : \"drift\",     score,     findings,     counts: {       error: findings.filter((f) => f.severity === \"error\").length,       warning: findings.filter((f) => f.severity === \"warning\").length",
+      "status": "active"
+    },
+    {
+      "id": "ADR-015",
+      "title": "Nástroje pro ochranu architektury (Architecture Guard)",
+      "date": "2026-09-20 21:08:04",
+      "file": "2026-09-20-ADR-015-nstroje-pro-ochranu-architektury-architecture-guar.md",
+      "constraint": "Nástroje pro ochranu architektury (Architecture Guard): Nástroje pro ochranu architektury (Architecture Guard)",
+      "status": "active"
+    },
+    {
+      "id": "ADR-016",
+      "title": "Plan: Port high/medium-value features from competitor analysis",
+      "date": "2026-09-20 21:14:09",
+      "file": "2026-09-20-ADR-016-plan-port-highmedium-value-features-from-competito.md",
+      "constraint": "Plan: Port high/medium-value features from competitor analysis: Implement 9 ports as new VSA slices (or enhancements to existing slices), following the plugin's architecture: - Each port = one new slice in `src/slices/` (or enhancement to existing) - Slices depend only on `src/shared/`, never on each other - `index.ts` wires them at composition root - New config knobs in `shared/types.ts` + defaults in `shared/config.ts` - Tests in `test/` following existing patterns",
+      "status": "active"
+    },
+    {
+      "id": "ADR-017",
+      "title": "Analýza integrace Needle pro pi-architecture-watcher",
+      "date": "2026-09-20 21:25:36",
+      "file": "2026-09-20-ADR-017-analza-integrace-needle-pro-pi-architecture-watche.md",
+      "constraint": "Analýza integrace Needle pro pi-architecture-watcher: Analýza integrace Needle pro pi-architecture-watcher",
+      "status": "active"
+    },
+    {
+      "id": "ADR-018",
+      "title": "> pi-architecture-watcher@0.1.0 test",
+      "date": "2026-09-20 22:10:13",
+      "file": "2026-09-20-ADR-018-pi-architecture-watcher010-test.md",
+      "constraint": "> pi-architecture-watcher@0.1.0 test: Successfully replaced 1 block(s) in /home/jara/100_projects/pi/plugins/pi-architecture-watcher/src/slices/archdetect-needle/schema.ts.",
       "status": "active"
     }
   ]

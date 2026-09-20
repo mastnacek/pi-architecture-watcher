@@ -1,5 +1,96 @@
 {
   "version": 1,
-  "lastUpdated": "2026-09-20 11:51:51",
-  "records": []
+  "lastUpdated": "2026-09-20 21:13:53",
+  "records": [
+    {
+      "id": "SPAI-001",
+      "title": "Plan port: ADR generation from findings (new slice: report-adr)",
+      "type": "Todo",
+      "status": "todo",
+      "symbol": ".",
+      "timestamp": "2026-09-20 21:13:53",
+      "tags": [],
+      "file": "2026-09-20-SPAI-001-plan-port-adr-generation-from-findings-new-slice-r.md"
+    },
+    {
+      "id": "SPAI-001",
+      "title": "Plan port: @arch-ignore comment suppression (enhance scan slice)",
+      "type": "Todo",
+      "status": "todo",
+      "symbol": ".",
+      "timestamp": "2026-09-20 21:13:53",
+      "tags": [],
+      "file": "2026-09-20-SPAI-001-plan-port-arch-ignore-comment-suppression-enhance-.md"
+    },
+    {
+      "id": "SPAI-001",
+      "title": "Plan port: Incremental topology caching (new slice: topology-incremental)",
+      "type": "Todo",
+      "status": "todo",
+      "symbol": ".",
+      "timestamp": "2026-09-20 21:13:53",
+      "tags": [],
+      "file": "2026-09-20-SPAI-001-plan-port-incremental-topology-caching-new-slice-t.md"
+    },
+    {
+      "id": "SPAI-001",
+      "title": "Plan port: Layer contracts → auto-rules (new slice: classify-contracts)",
+      "type": "Todo",
+      "status": "todo",
+      "symbol": ".",
+      "timestamp": "2026-09-20 21:13:53",
+      "tags": [],
+      "file": "2026-09-20-SPAI-001-plan-port-layer-contracts-auto-rules-new-slice-cla.md"
+    },
+    {
+      "id": "SPAI-001",
+      "title": "Plan port: Mermaid/DOT graph export (new slice: report-graph)",
+      "type": "Todo",
+      "status": "todo",
+      "symbol": ".",
+      "timestamp": "2026-09-20 21:13:53",
+      "tags": [],
+      "file": "2026-09-20-SPAI-001-plan-port-mermaiddot-graph-export-new-slice-report.md"
+    },
+    {
+      "id": "SPAI-001",
+      "title": "Plan port: Monorepo workspace support (new slice: topology-workspace)",
+      "type": "Todo",
+      "status": "todo",
+      "symbol": ".",
+      "timestamp": "2026-09-20 21:13:53",
+      "tags": [],
+      "file": "2026-09-20-SPAI-001-plan-port-monorepo-workspace-support-new-slice-top.md"
+    },
+    {
+      "id": "SPAI-001",
+      "title": "Plan port: Rule severity overrides per-file (enhance classify slice)",
+      "type": "Todo",
+      "status": "todo",
+      "symbol": ".",
+      "timestamp": "2026-09-20 21:13:53",
+      "tags": [],
+      "file": "2026-09-20-SPAI-001-plan-port-rule-severity-overrides-per-file-enhance.md"
+    },
+    {
+      "id": "SPAI-001",
+      "title": "Plan port: SARIF output + CI flag (new slice: report-sarif)",
+      "type": "Todo",
+      "status": "todo",
+      "symbol": ".",
+      "timestamp": "2026-09-20 21:13:53",
+      "tags": [],
+      "file": "2026-09-20-SPAI-001-plan-port-sarif-output-ci-flag-new-slice-report-sa.md"
+    },
+    {
+      "id": "SPAI-001",
+      "title": "Plan port: YAML rule configuration (new slice: config-rules)",
+      "type": "Todo",
+      "status": "todo",
+      "symbol": ".",
+      "timestamp": "2026-09-20 21:13:53",
+      "tags": [],
+      "file": "2026-09-20-SPAI-001-plan-port-yaml-rule-configuration-new-slice-config.md"
+    }
+  ]
 }

@@ -1,0 +1,24 @@
+# ADR-016: Plan: Port high/medium-value features from competitor analysis
+- **Date:** 2026-09-20 21:14:09
+- **Status:** active
+- **Context:** Competitor analysis (Steiger, go-arch-lint, ArchUnit family, import-linter, archwarden, etc.) identified gaps in pi-architecture-watcher:
+- No declarative rule configuration (YAML/JSON) — users must fork to customize
+- No suppression mechanism (@arch-ignore comments)
+- No CI/CD integration (SARIF, --fail-on flag)
+- No layer contract definitions that auto-generate rules
+- No incremental caching for large repos
+- No dependency graph export (Mermaid/DOT)
+- No per-file severity overrides
+- No ADR generation from findings
+- No monorepo workspace support
+- **Decision:** Implement 9 ports as new VSA slices (or enhancements to existing slices), following the plugin's architecture:
+- Each port = one new slice in `src/slices/` (or enhancement to existing)
+- Slices depend only on `src/shared/`, never on each other
+- `index.ts` wires them at composition root
+- New config knobs in `shared/types.ts` + defaults in `shared/config.ts`
+- Tests in `test/` following existing patterns
+- **Consequences:** - Adds ~9 new slices, ~2000 LoC
+- Maintains zero-runtime-deps (except typebox)
+- Preserves "no LLM in detection path" — all ports are static analysis
+- Increases test surface — need test fixtures per slice
+- Config complexity grows — YAML schema validation needed

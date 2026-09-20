@@ -147,28 +147,10 @@ export function estimateDepth(
 
 // --- Model path: architecture only ----------------------------------------
 
-/** Build the compact, structure-only digest sent as the model's `state`. */
-export function buildStateDigest(lookup: SliceLookup, config: WatcherConfig): string {
-  const lines: string[] = [];
-  lines.push(`slice roots (configured): ${config.roots.join(", ") || "none"}`);
-  lines.push(`shared roots (configured): ${config.sharedRoots.join(", ") || "none"}`);
-  const slices = lookup.slices();
-  lines.push(`discovered slices (${slices.length}):`);
-  for (const s of slices) {
-    const rel = relPosix(lookup.root, s.dir);
-    lines.push(`  - ${rel} (publicEntry=${s.hasPublicEntry ? "yes" : "no"})`);
-  }
-  return lines.join("\n");
-}
-
-/** The single typed question this model answers: which architecture? */
-export function buildQuestion(): { type: "choice"; instructions: string; criteria: Record<string, string> } {
-  return {
-    type: "choice",
-    instructions: "Which architecture does this project's structure most closely follow?",
-    criteria: criteriaMap() as Record<string, string>,
-  };
-}
+import {
+  buildArchitectureDigest as buildStateDigest,
+  buildArchitectureQuestion as buildQuestion,
+} from "../../shared/archdetect.js";
 
 function clamp01(n: number): number {
   return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0;

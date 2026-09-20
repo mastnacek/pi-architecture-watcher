@@ -64,6 +64,15 @@ import {
   estimateDepth,
   findArchetype,
 } from "./src/slices/archdetect/index.js";
+import {
+  detectArchitectureNeedle,
+  type NeedleDetectOptions,
+  type NeedleDetectResult,
+  ArchDetectModal,
+  type DetectionEngine,
+  type ModalDetectionResult,
+  type ModalCallbacks,
+} from "./src/slices/archdetect-needle/index.js";
 
 const STATUS_KEY = "vsa";
 
@@ -206,12 +215,107 @@ const refreshStatus = (ctx: ExtensionContext, watcher: WatcherState, report: Rep
     }
   };
 
+/** Show the architecture detection modal and handle the result. */
+async function showArchitectureDetectionModal(
+  ctx: ExtensionContext,
+  state: WatcherState,
+): Promise<void> {
+  const modal = new ArchDetectModal({
+    onEngineSelect: async (engine: DetectionEngine) => {
+      modal.startDownloading(engine);
+
+      try {
+        let result: NeedleDetectResult | { ok: true; detection: ModalDetectionResult } | { ok: false; reason: string };
+
+        if (engine === "jev") {
+          modal.updateDownloadProgress("Connecting to Jev...", 0.2);
+          result = await detectArchitecture(state.lookup, state.config, {
+            apiKey: resolveOpenRouterKey(),
+          });
+        } else {
+          // needle or auto (prefer needle)
+          const needleOptions: NeedleDetectOptions = {
+            onProgress: (stage, progress) => {
+              if (stage.startsWith("Downloading") || stage.startsWith("Preparing")) {
+                modal.updateDownloadProgress(stage, progress);
+              } else {
+                modal.startDetecting(engine);
+                modal.updateDetectionProgress(stage, progress);
+              }
+            },
+          };
+          result = await detectArchitectureNeedle(state.lookup, state.config, needleOptions);
+        }
+
+        if (!result.ok) {
+          modal.showError(result.reason);
+          return;
+        }
+
+        const detection = result.detection;
+        const modalResult: ModalDetectionResult = {
+          engine,
+          architecture: detection.architecture,
+          confidence: detection.confidence,
+          reasoning: detection.digest, // use digest as reasoning for now
+          digest: detection.digest,
+          cost: detection.cost,
+        };
+
+        modal.showResult(modalResult);
+      } catch (err) {
+        modal.showError(err instanceof Error ? err.message : String(err));
+      }
+    },
+    onConfirm: (result: ModalDetectionResult) => {
+      // Save the detected architecture to config
+      state.config = { ...state.config, architecture: result.architecture };
+      saveProjectConfig(state.root, state.config);
+      refreshTopology(ctx);
+      refreshStatus(ctx, state, state.last);
+      ctx.ui.notify(
+        `Architektura detekována: ${architectureCode(result.architecture)} (${Math.round(result.confidence * 100)}%)
+Uloženo do ${projectConfigPath(state.root)}`,
+        "info",
+      );
+    },
+    onCancel: () => {
+      // User cancelled - keep default architecture
+      ctx.ui.notify("Detekce architektury zrušena. Používá se výchozí: VSA.", "info");
+    },
+  });
+
+  // Show the modal via ctx.ui.custom
+  await ctx.ui.custom((tui, theme, _keybindings, _done) => {
+    modal.setContext(tui, theme);
+    return {
+      render: (width: number) => modal.render(width),
+      handleInput: (data: string) => {
+        modal.handleInput(data);
+        tui.requestRender();
+      },
+      invalidate: () => modal.invalidate(),
+    };
+  });
+}
+
   // --- Pi wiring -----------------------------------------------------------
 
   pi.on("session_start", async (_event, ctx) => {
     state = createState(ctx.cwd);
     if (state.config.enabled && state.config.statusLine) {
       refreshStatus(ctx, state, null);
+    }
+
+    // Offer architecture detection if not yet configured and detectArchitecture is enabled
+    if (
+      state.config.enabled
+      && state.config.detectArchitecture
+      && state.config.architecture === "vsa" // default, not yet detected
+      && ctx.hasUI
+      && state.lookup.slices().length > 0
+    ) {
+      await showArchitectureDetectionModal(ctx, state);
     }
   });
 

@@ -25,8 +25,10 @@ export {
   type SystemOneResponse,
 } from "./systemone.js";
 export {
-  buildQuestion,
-  buildStateDigest,
+  buildArchitectureDigest as buildStateDigest,
+  buildArchitectureQuestion as buildQuestion,
+} from "../../shared/archdetect.js";
+export {
   decodeDetection,
   detectArchitecture,
   estimateDepth,
