@@ -62,7 +62,6 @@ import {
   architectureCode,
   detectArchitecture,
   estimateDepth,
-  findArchetype,
 } from "./src/slices/archdetect/index.js";
 import {
   detectArchitectureNeedle,
@@ -71,7 +70,6 @@ import {
   ArchDetectModal,
   type DetectionEngine,
   type ModalDetectionResult,
-  type ModalCallbacks,
 } from "./src/slices/archdetect-needle/index.js";
 
 const STATUS_KEY = "vsa";

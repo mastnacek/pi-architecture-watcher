@@ -92,13 +92,14 @@ export class ArchDetectModal implements Component {
   constructor(callbacks: ModalCallbacks) {
     this.callbacks = callbacks;
     this.container = new Container();
-    this.buildEngineSelect();
+    // Don't build yet - wait for setContext to be called with theme
   }
 
   /** Inject TUI and theme references (called by ctx.ui.custom) */
   setContext(tui: any, theme: any) {
     this.tui = tui;
     this.theme = theme;
+    this.buildEngineSelect();
   }
 
   private buildEngineSelect() {
