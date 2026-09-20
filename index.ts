@@ -610,32 +610,7 @@ Uloženo do ${projectConfigPath(state.root)}`,
         }
 
         case "detect": {
-          ctx.ui.notify("[vsa] spouštím detekci architektury…", "info");
-          const result = await detectArchitecture(watcher.lookup, watcher.config, {
-            apiKey: resolveOpenRouterKey(),
-          });
-          if (!result.ok) {
-            ctx.ui.notify(`[vsa] detekce selhala: ${result.reason}`, "error");
-            return;
-          }
-          const d = result.detection;
-          const archetype = findArchetype(d.architecture);
-          const discovered = discoverRoots(watcher.root, watcher.config);
-          const next: WatcherConfig = { ...watcher.config, architecture: d.architecture };
-          if (discovered.roots.length > 0) next.roots = discovered.roots;
-          if (discovered.sharedRoots.length > 0) next.sharedRoots = discovered.sharedRoots;
-          watcher.config = next;
-          saveProjectConfig(watcher.root, next);
-          refreshTopology(ctx);
-          const pct = Math.round(d.confidence * 100);
-          ctx.ui.notify(
-            `Detekovaná architektura: ${archetype?.label ?? d.architecture} (jistota ${pct}%)\n`
-              + `model: ${d.model ?? "—"} · náklad $${d.cost ?? 0}\n`
-              + `kořeny řezů nalezeny (${discovered.roots.length}): ${discovered.roots.join(", ") || "—"}\n`
-              + `řezy: ${watcher.lookup.slices().length}\n`
-              + `uloženo → ${projectConfigPath(watcher.root)}`,
-            "info",
-          );
+          await showArchitectureDetectionModal(ctx, watcher);
           return;
         }
 
