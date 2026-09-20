@@ -40,7 +40,7 @@ import type {
 } from "./src/shared/types.js";
 import { scanImports } from "./src/slices/scan/index.js";
 import { buildSliceMap, discoverRoots } from "./src/slices/topology/index.js";
-import { classifyFile, RULE_CATALOGUE } from "./src/slices/classify/index.js";
+import { classifyFile, buildRuleCatalogue } from "./src/slices/classify/index.js";
 import {
   formatDeclined,
   formatInjection,
@@ -188,13 +188,22 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
     return classifyFile(facts);
   };
 
-  const publishStatus = (ctx: ExtensionContext, watcher: WatcherState, report: Report): void => {
+const refreshStatus = (ctx: ExtensionContext, watcher: WatcherState, report: Report | null): void => {
     if (!watcher.config.statusLine) return;
-    ctx.ui.setStatus(STATUS_KEY, formatStatus(report, {
-      mode: watcher.config.mode,
-      theme: ctx.ui.theme,
-      architecture: architectureCode(watcher.config.architecture),
-    }));
+    if (report) {
+      ctx.ui.setStatus(STATUS_KEY, formatStatus(report, {
+        mode: watcher.config.mode,
+        theme: ctx.ui.theme,
+        architecture: architectureCode(watcher.config.architecture),
+      }));
+    } else {
+      ctx.ui.setStatus(STATUS_KEY, formatWatching(
+        watcher.lookup.slices().length,
+        watcher.config.mode,
+        ctx.ui.theme,
+        architectureCode(watcher.config.architecture),
+      ));
+    }
   };
 
   // --- Pi wiring -----------------------------------------------------------
@@ -202,16 +211,7 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
   pi.on("session_start", async (_event, ctx) => {
     state = createState(ctx.cwd);
     if (state.config.enabled && state.config.statusLine) {
-      const sliceCount = state.lookup.slices().length;
-      ctx.ui.setStatus(
-        STATUS_KEY,
-        formatWatching(
-          sliceCount,
-          state.config.mode,
-          ctx.ui.theme,
-          architectureCode(state.config.architecture),
-        ),
-      );
+      refreshStatus(ctx, state, null);
     }
   });
 
@@ -236,7 +236,7 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
 
     const report = analyze(watcher, absPath, rel, content);
     watcher.last = report;
-    publishStatus(ctx, watcher, report);
+    refreshStatus(ctx, watcher, report);
 
     const decision = decideGate({
       report,
@@ -335,7 +335,7 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
       const rel = relPosix(watcher.lookup.root, absPath);
       const report = analyze(watcher, absPath, rel, content);
       watcher.last = report;
-      publishStatus(ctx, watcher, report);
+      refreshStatus(ctx, watcher, report);
       return {
         content: [{
           type: "text" as const,
@@ -398,7 +398,7 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
           }
           const report = analyze(watcher, abs, relPosix(watcher.lookup.root, abs), content);
           watcher.last = report;
-          publishStatus(ctx, watcher, report);
+          refreshStatus(ctx, watcher, report);
           ctx.ui.notify(
             formatReport(report, { architecture: architectureCode(watcher.config.architecture) }),
             report.findings.length === 0 ? "info" : "warning",
@@ -414,13 +414,14 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
           }
           watcher.config = { ...watcher.config, mode: next };
           saveProjectConfig(watcher.root, watcher.config);
+          refreshStatus(ctx, watcher, watcher.last);
           ctx.ui.notify(`[vsa] režim = ${next} (uloženo do ${projectConfigPath(watcher.root)})`, "info");
           return;
         }
 
         case "rules":
           ctx.ui.notify(
-            `Pravidla ${architectureCode(watcher.config.architecture)}\n${formatRuleCatalogue(RULE_CATALOGUE)}`,
+            `Pravidla ${architectureCode(watcher.config.architecture)}\n${formatRuleCatalogue(buildRuleCatalogue(watcher.config.architecture))}`,
             "info",
           );
           return;
@@ -535,6 +536,8 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
           saveProjectConfig(watcher.root, watcher.config);
           if (!watcher.config.enabled && watcher.config.statusLine) {
             ctx.ui.setStatus(STATUS_KEY, undefined);
+          } else {
+            refreshStatus(ctx, watcher, watcher.last);
           }
           ctx.ui.notify(`[vsa] zapnuto = ${watcher.config.enabled}`, "info");
           return;
@@ -600,7 +603,8 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
             watcher.config = { ...watcher.config, [spec.key]: parsed.value };
             saveProjectConfig(watcher.root, watcher.config);
             refreshTopology(ctx);
-            if (!watcher.config.statusLine) ctx.ui.setStatus(STATUS_KEY, undefined);
+            if (watcher.config.statusLine) refreshStatus(ctx, watcher, watcher.last);
+            else ctx.ui.setStatus(STATUS_KEY, undefined);
             ctx.ui.notify(
               `[vsa] ${spec.key} = ${formatValue(watcher.config[spec.key])} `
                 + `(uloženo do ${projectConfigPath(watcher.root)})`,
@@ -646,7 +650,7 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
       }
       const report = analyze(watcher, watcher.last.abs, watcher.last.file, content);
       watcher.last = report;
-      publishStatus(ctx, watcher, report);
+      refreshStatus(ctx, watcher, report);
       ctx.ui.notify(
         formatOneLiner(report, architectureCode(watcher.config.architecture)),
         report.findings.length === 0 ? "info" : "warning",

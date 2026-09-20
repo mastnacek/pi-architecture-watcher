@@ -1,19 +1,18 @@
 /**
- * Rule engine — internal to the `classify` slice.
+ * VSA (Vertical Slice Architecture) rules — the default architecture rule set.
  *
- * Deep module: a rule is `(facts) => Finding[]`. Adding a detection means
- * adding one pure function to `RULES`, nothing else. Rules never mutate inputs,
- * never touch the network and never call a model.
+ * Deep module: each rule is a pure function. Rules are registered with the
+ * architecture registry so they can be overridden or extended by other
+ * architectures.
  */
 
 import { dirname } from "node:path";
-import { baseName, relPosix, stripExtension } from "../../shared/paths.js";
-import type { Dependency, EnrichedFacts } from "./enrich.js";
-import { retargetSpecifier } from "./enrich.js";
-import type { Finding } from "../../shared/types.js";
-import type { Rule } from "./architectures/types.js";
+import { baseName, relPosix, stripExtension } from "../../../shared/paths.js";
+import type { EnrichedFacts } from "../enrich.js";
+import { retargetSpecifier } from "../enrich.js";
+import type { Rule, ArchitectureRuleSet } from "./types.js";
+import type { Finding } from "../../../shared/types.js";
 
-/** Slice-internal filenames that hint at an anaemic, non-vertical design. */
 const GENERIC_SLICE_NAMES = [
   "utils",
   "helpers",
@@ -49,15 +48,12 @@ function finding(
   return out;
 }
 
-/** The public entry a cross-slice import *should* have used. */
-function publicTarget(facts: EnrichedFacts, dep: Dependency): string | null {
+function publicTarget(facts: EnrichedFacts, dep: EnrichedFacts["dependencies"][0]): string | null {
   if (!dep.targetSlice) return null;
   return facts.lookup.publicEntryPath(dep.targetSlice);
 }
 
-// ---------------------------------------------------------------------------
 // R1 — cross-slice deep import
-// ---------------------------------------------------------------------------
 function crossSliceDeepImport(facts: EnrichedFacts): Finding[] {
   const out: Finding[] = [];
   if (!facts.slice) return out;
@@ -85,9 +81,7 @@ function crossSliceDeepImport(facts: EnrichedFacts): Finding[] {
       : `Vytvoř \`${target.id}/${facts.config.publicEntries[0]}.ts\`, které re-exportuje jen to, `
         + `co spotřebitelé potřebují, a importuj to.`;
 
-    const fix = entry
-      ? retargetSpecifier(dep.edge.specifier, facts.file.path, entry)
-      : undefined;
+    const fix = entry ? retargetSpecifier(dep.edge.specifier, facts.file.path, entry) : undefined;
 
     out.push(
       finding(
@@ -105,9 +99,7 @@ function crossSliceDeepImport(facts: EnrichedFacts): Finding[] {
   return out;
 }
 
-// ---------------------------------------------------------------------------
 // R2 — cross-slice cycle (A -> B and B -> A)
-// ---------------------------------------------------------------------------
 function crossSliceCycle(facts: EnrichedFacts): Finding[] {
   const out: Finding[] = [];
   if (!facts.slice) return out;
@@ -146,9 +138,7 @@ function crossSliceCycle(facts: EnrichedFacts): Finding[] {
   return out;
 }
 
-// ---------------------------------------------------------------------------
 // R3 — shared kernel depends on a slice (inverted layering)
-// ---------------------------------------------------------------------------
 function sharedDependsOnSlice(facts: EnrichedFacts): Finding[] {
   const out: Finding[] = [];
   if (facts.slice || !facts.shared) return out;
@@ -173,9 +163,7 @@ function sharedDependsOnSlice(facts: EnrichedFacts): Finding[] {
   return out;
 }
 
-// ---------------------------------------------------------------------------
 // R4 — domain logic placed outside its slice
-// ---------------------------------------------------------------------------
 function orphanDomainFile(facts: EnrichedFacts): Finding[] {
   const out: Finding[] = [];
   if (facts.slice || facts.shared) return out;
@@ -204,7 +192,6 @@ function orphanDomainFile(facts: EnrichedFacts): Finding[] {
     return out;
   }
 
-  // Fall back to identifier vocabulary in the content.
   const content = facts.file.content;
   const mentions = sliceIds.filter((id) => {
     if (id.length < 3) return false;
@@ -229,9 +216,7 @@ function orphanDomainFile(facts: EnrichedFacts): Finding[] {
   return out;
 }
 
-// ---------------------------------------------------------------------------
 // R5 — slice fan-out
-// ---------------------------------------------------------------------------
 function sliceFanOut(facts: EnrichedFacts): Finding[] {
   const out: Finding[] = [];
   if (!facts.slice) return out;
@@ -259,9 +244,7 @@ function sliceFanOut(facts: EnrichedFacts): Finding[] {
   return out;
 }
 
-// ---------------------------------------------------------------------------
 // R6 — public entry re-exports internals
-// ---------------------------------------------------------------------------
 function barrelLeak(facts: EnrichedFacts): Finding[] {
   const out: Finding[] = [];
   if (!facts.slice || !facts.lookup.isPublicEntry(facts.file.path, facts.slice)) return out;
@@ -287,9 +270,7 @@ function barrelLeak(facts: EnrichedFacts): Finding[] {
   return out;
 }
 
-// ---------------------------------------------------------------------------
 // R7 — shared kernel inflation
-// ---------------------------------------------------------------------------
 function sharedAbuse(facts: EnrichedFacts): Finding[] {
   const out: Finding[] = [];
   if (!facts.slice) return out;
@@ -314,9 +295,7 @@ function sharedAbuse(facts: EnrichedFacts): Finding[] {
   return out;
 }
 
-// ---------------------------------------------------------------------------
 // R8 — misplaced or generic file inside a slice
-// ---------------------------------------------------------------------------
 function looseSliceFile(facts: EnrichedFacts): Finding[] {
   const out: Finding[] = [];
   if (!facts.slice) return out;
@@ -366,9 +345,7 @@ function looseSliceFile(facts: EnrichedFacts): Finding[] {
   return out;
 }
 
-// ---------------------------------------------------------------------------
 // R9 — slice without a public entry
-// ---------------------------------------------------------------------------
 function missingPublicEntry(facts: EnrichedFacts): Finding[] {
   if (!facts.slice || facts.slice.hasPublicEntry) return [];
   return [
@@ -385,9 +362,7 @@ function missingPublicEntry(facts: EnrichedFacts): Finding[] {
   ];
 }
 
-// ---------------------------------------------------------------------------
 // R10 — file dropped directly into a slice root folder
-// ---------------------------------------------------------------------------
 function fileInSliceRoot(facts: EnrichedFacts): Finding[] {
   if (facts.slice || facts.shared) return [];
   const parent = dirname(facts.file.path);
@@ -407,82 +382,20 @@ function fileInSliceRoot(facts: EnrichedFacts): Finding[] {
   ];
 }
 
-/** Ordered registry — order only affects presentation, not scoring. */
-export const RULES: ReadonlyArray<(facts: EnrichedFacts) => Finding[]> = [
-  crossSliceDeepImport,
-  crossSliceCycle,
-  sharedDependsOnSlice,
-  orphanDomainFile,
-  sliceFanOut,
-  barrelLeak,
-  sharedAbuse,
-  looseSliceFile,
-  missingPublicEntry,
-  fileInSliceRoot,
+export const VSA_RULES: Rule[] = [
+  { id: "cross-slice-deep-import", severity: "error", description: "Řez sahá do vnitřku jiného řezu místo na jeho veřejný vstup.", run: crossSliceDeepImport },
+  { id: "cross-slice-cycle", severity: "error", description: "Dva řezy se importují navzájem, tvoří cyklus v grafu řezů.", run: crossSliceCycle },
+  { id: "shared-depends-on-slice", severity: "error", description: "Sdílené jádro importuje feature řez, obrací zamýšlené vrstvení.", run: sharedDependsOnSlice },
+  { id: "orphan-domain-file", severity: "warning", description: "Soubor mimo všechny řezy nese slovník nebo pojmenování domény řezu.", run: orphanDomainFile },
+  { id: "slice-fan-out", severity: "warning", description: "Řez závisí na více sousedních řezech, než je nastavený rozpočet.", run: sliceFanOut },
+  { id: "barrel-leak", severity: "hint", description: "Veřejný vstup řezu re-exportuje vnitřky a rozšiřuje tak své rozhraní.", run: barrelLeak },
+  { id: "shared-abuse", severity: "hint", description: "Soubor táhne mnoho modulů ze sdíleného jádra — skrytá horizontální vrstva.", run: sharedAbuse },
+  { id: "loose-slice-file", severity: "warning", description: "Generický nebo cizí doménový modul žije ve špatném řezu.", run: looseSliceFile },
+  { id: "slice-missing-entry", severity: "hint", description: "Adresář řezu nemá veřejný vstup, nutí spotřebitele k hlubokým importům.", run: missingPublicEntry },
+  { id: "file-in-slice-root", severity: "hint", description: "Soubor leží přímo v kontejneru řezů místo v řezu.", run: fileInSliceRoot },
 ];
 
-/** Human-facing catalogue of every rule, used by `/vsa rules`. */
-export const RULE_CATALOGUE: ReadonlyArray<[string, Finding["severity"], string]> = [
-  [
-    "cross-slice-deep-import",
-    "error",
-    "Řez sahá do vnitřku jiného řezu místo na jeho veřejný vstup.",
-  ],
-  [
-    "cross-slice-cycle",
-    "error",
-    "Dva řezy se importují navzájem, tvoří cyklus v grafu řezů.",
-  ],
-  [
-    "shared-depends-on-slice",
-    "error",
-    "Sdílené jádro importuje feature řez, obrací zamýšlené vrstvení.",
-  ],
-  [
-    "orphan-domain-file",
-    "warning",
-    "Soubor mimo všechny řezy nese slovník nebo pojmenování domény řezu.",
-  ],
-  [
-    "slice-fan-out",
-    "warning",
-    "Řez závisí na více sousedních řezech, než je nastavený rozpočet.",
-  ],
-  [
-    "barrel-leak",
-    "hint",
-    "Veřejný vstup řezu re-exportuje vnitřky a rozšiřuje tak své rozhraní.",
-  ],
-  [
-    "shared-abuse",
-    "hint",
-    "Soubor táhne mnoho modulů ze sdíleného jádra — skrytá horizontální vrstva.",
-  ],
-  [
-    "loose-slice-file",
-    "warning",
-    "Generický nebo cizí doménový modul žije ve špatném řezu.",
-  ],
-  [
-    "slice-missing-entry",
-    "hint",
-    "Adresář řezu nemá veřejný vstup, nutí spotřebitele k hlubokým importům.",
-  ],
-  [
-    "file-in-slice-root",
-    "hint",
-    "Soubor leží přímo v kontejneru řezů místo v řezu.",
-  ],
-];
-
-/** Run every rule and return findings sorted by severity, then line. */
-export function runRules(facts: EnrichedFacts, architectureRules?: Rule[]): Finding[] {
-  const rules = architectureRules ?? RULES;
-  const rank = { error: 0, warning: 1, hint: 2 } as const;
-  return rules.flatMap((rule) => {
-    const fn = typeof rule === "function" ? rule : rule.run;
-    return fn(facts);
-  }).sort(
-    (a, b) => rank[a.severity] - rank[b.severity] || (a.line ?? 0) - (b.line ?? 0),
-  );
-}
+export const VSA_RULE_SET: ArchitectureRuleSet = {
+  architecture: "vsa",
+  rules: VSA_RULES,
+};

@@ -7,12 +7,14 @@
 import { enrich } from "./enrich.js";
 import { runRules } from "./rules.js";
 import { countBySeverity, scoreFindings, verdictOf } from "./score.js";
+import { getRulesForArchitecture, buildRuleCatalogue } from "./architectures/index.js";
 import type { FileFacts, Report } from "../../shared/types.js";
 
-/** Classify one prospective file write and score its VSA adherence. */
+/** Classify one prospective file write and score its architecture adherence. */
 export function classifyFile(facts: FileFacts): Report {
   const enriched = enrich(facts);
-  const findings = runRules(enriched);
+  const architectureRules = getRulesForArchitecture(facts.config.architecture);
+  const findings = runRules(enriched, architectureRules);
   const score = scoreFindings(findings);
 
   return {
@@ -31,5 +33,5 @@ export function classifyFile(facts: FileFacts): Report {
 
 export { atLeast, countBySeverity, scoreFindings, strongest, verdictOf } from "./score.js";
 export { enrich, retargetSpecifier } from "./enrich.js";
-export { RULE_CATALOGUE } from "./rules.js";
+export { buildRuleCatalogue } from "./architectures/index.js";
 export type { Dependency, EnrichedFacts } from "./enrich.js";
