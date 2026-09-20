@@ -12,6 +12,7 @@ import {
   type ExtensionAPI,
   type ExtensionCommandContext,
   type ExtensionContext,
+  readStoredCredential,
 } from "@earendil-works/pi-coding-agent";
 import {
   DEFAULT_CONFIG,
@@ -60,6 +61,21 @@ import {
 import { detectArchitecture, findArchetype, estimateDepth } from "./src/slices/archdetect/index.js";
 
 const STATUS_KEY = "vsa";
+
+/**
+ * Resolve the OpenRouter key the same way Pi's own providers do: the
+ * `OPENROUTER_API_KEY` env var first, then the OpenRouter OAuth credential
+ * stored in `~/.pi/agent/auth.json` (its `access` field is the permanent API
+ * key). Kept here in the composition root so the `archdetect` slice stays
+ * free of `@earendil-works/pi-coding-agent` imports.
+ */
+function resolveOpenRouterKey(): string | undefined {
+  const env = process.env["OPENROUTER_API_KEY"];
+  if (env && env.length > 0) return env;
+  const cred = readStoredCredential("openrouter") as { access?: unknown } | undefined;
+  if (cred && typeof cred.access === "string" && cred.access.length > 0) return cred.access;
+  return undefined;
+}
 
 interface WatcherState {
   root: string;
@@ -407,7 +423,9 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
             return;
           }
           ctx.ui.notify("[vsa] spouštím detekci architektury přes decision model…", "info");
-          const result = await detectArchitecture(watcher.lookup, watcher.config);
+          const result = await detectArchitecture(watcher.lookup, watcher.config, {
+            apiKey: resolveOpenRouterKey(),
+          });
           if (!result.ok) {
             ctx.ui.notify(`[vsa] detekce selhala: ${result.reason}`, "error");
             return;

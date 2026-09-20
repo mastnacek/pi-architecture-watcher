@@ -74,9 +74,12 @@ export class SystemOneError extends Error {
 }
 
 /** Resolve the OpenRouter key from the explicit option, else the environment. */
+/** Resolve the OpenRouter key from the explicit option, else the env var.
+ * OAuth (auth.json) resolution happens in the composition root, which passes
+ * the result in as an explicit key to keep this slice Pi-free. */
 export function resolveApiKey(explicit?: string): string | null {
   if (explicit && explicit.length > 0) return explicit;
-  const env = process.env["OPENROUTER_API_KEY"] ?? process.env["OPENROUTER_AUTH_TOKEN"];
+  const env = process.env["OPENROUTER_API_KEY"];
   return env && env.length > 0 ? env : null;
 }
 
@@ -87,7 +90,7 @@ export async function callSystemOne(
 ): Promise<SystemOneResponse> {
   const apiKey = resolveApiKey(options.apiKey);
   if (apiKey === null) {
-    throw new SystemOneError("OPENROUTER_API_KEY není nastaven — detekce architektury nejde zapnout");
+    throw new SystemOneError("není k dispozici OpenRouter klíč — nastav OPENROUTER_API_KEY nebo se přihlas přes /login (OpenRouter)");
   }
 
   // SAFETY: Node ≥ 18 exposes a WHATWG-compatible `fetch` on the global; we
