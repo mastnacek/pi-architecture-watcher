@@ -31,12 +31,7 @@ export interface DetectionResult {
   cost?: number;
 }
 
-/** Comparison result for side-by-side display */
-export interface ComparisonResult {
-  jev: DetectionResult | null;
-  needle: DetectionResult | null;
-  match: boolean;
-}
+
 
 export interface ModalCallbacks {
   onEngineSelect: (engine: DetectionEngine) => void;
@@ -355,14 +350,22 @@ export class ArchDetectModal implements Component {
   }
 
   handleInput(data: string): void {
-    if (matchesKey(data, Key.escape)) {
-      this.callbacks.onCancel();
-      return;
-    }
-
+    // Let the active component handle input first (SelectList handles arrows, enter, escape)
     if (this.state.phase === "engine-select" && this.selectList) {
       this.selectList.handleInput(data);
       this.tui?.requestRender();
+      return;
+    }
+
+    if (this.loader) {
+      this.loader.handleInput(data);
+      this.tui?.requestRender();
+      return;
+    }
+
+    // Global escape handling for phases without a focused component
+    if (matchesKey(data, Key.escape)) {
+      this.callbacks.onCancel();
       return;
     }
 
@@ -372,17 +375,11 @@ export class ArchDetectModal implements Component {
     }
 
     if (this.state.phase === "comparison" && matchesKey(data, Key.enter)) {
-      // For comparison, pick one to save - default to needle if available, else jev
       const chosen = this.state.needle ?? this.state.jev;
       if (chosen) {
         this.callbacks.onConfirm(chosen);
       }
       return;
-    }
-
-    if (this.loader) {
-      this.loader.handleInput(data);
-      this.tui?.requestRender();
     }
   }
 
