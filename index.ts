@@ -218,6 +218,8 @@ async function showArchitectureDetectionModal(
   ctx: ExtensionContext,
   state: WatcherState,
 ): Promise<void> {
+  let doneFn: ((result?: ModalDetectionResult) => void) | null = null;
+
   const modal = new ArchDetectModal({
     onEngineSelect: async (engine: DetectionEngine) => {
       if (engine === "compare") {
@@ -328,15 +330,18 @@ async function showArchitectureDetectionModal(
 Uloženo do ${projectConfigPath(state.root)}`,
         "info",
       );
+      doneFn?.(result);
     },
     onCancel: () => {
       // User cancelled - keep default architecture
       ctx.ui.notify("Detekce architektury zrušena. Používá se výchozí: VSA.", "info");
+      doneFn?.(undefined);
     },
   });
 
   // Show the modal via ctx.ui.custom
-  await ctx.ui.custom((tui, theme, _keybindings, _done) => {
+  await ctx.ui.custom((tui, theme, _keybindings, done) => {
+    doneFn = done;
     modal.setContext(tui, theme);
     return {
       render: (width: number) => modal.render(width),
