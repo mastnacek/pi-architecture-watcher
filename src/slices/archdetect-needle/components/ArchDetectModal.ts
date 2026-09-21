@@ -353,12 +353,14 @@ export class ArchDetectModal implements Component {
     // Let the active component handle input first (SelectList handles arrows, enter, escape)
     if (this.state.phase === "engine-select" && this.selectList) {
       this.selectList.handleInput(data);
+      this.invalidate();
       this.tui?.requestRender();
       return;
     }
 
     if (this.loader) {
       this.loader.handleInput(data);
+      this.invalidate();
       this.tui?.requestRender();
       return;
     }
