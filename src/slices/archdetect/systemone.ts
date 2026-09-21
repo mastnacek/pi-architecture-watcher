@@ -57,7 +57,7 @@ export interface SystemOneResponse {
 /** Minimal fetch signature — keeps the client decoupled from DOM/undici types. */
 export type FetchLike = (
   url: string,
-  init?: { method?: string; headers?: Record<string, string>; body?: string },
+  init?: { method?: string; headers?: Record<string, string>; body?: string; signal?: AbortSignal },
 ) => Promise<{ ok: boolean; status: number; json(): Promise<unknown>; text(): Promise<string> }>;
 
 export interface SystemOneOptions {
@@ -108,6 +108,13 @@ export async function callSystemOne(
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify(request),
+    signal: AbortSignal.timeout(15000),
+  }).catch((err: unknown) => {
+    throw new SystemOneError(
+      err instanceof Error && err.name === "TimeoutError"
+        ? "Požadavek na System One vypršel (timeout)."
+        : `Chyba sítě: ${err instanceof Error ? err.message : String(err)}`
+    );
   });
 
   if (!res.ok) {
