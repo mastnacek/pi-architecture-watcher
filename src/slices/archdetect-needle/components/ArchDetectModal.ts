@@ -150,7 +150,8 @@ export class ArchDetectModal implements Component {
   private buildDownloading(engine: DetectionEngine, stage: string, progress: number) {
     this.container.clear();
     this.container.addChild(new DynamicBorder((s: string) => this.theme?.fg("accent", s) ?? s));
-    this.container.addChild(new Text(title(this.theme, `📥 Downloading ${engine === "needle" ? "Needle" : "Jev"} Engine`), 1, 0));
+    const titleText = engine === "jev" ? "🌐 Connecting to Jev Engine" : "📥 Downloading Needle Engine";
+    this.container.addChild(new Text(title(this.theme, titleText), 1, 0));
     this.container.addChild(new Spacer(1));
     this.container.addChild(new Text(muted(this.theme, stage), 1, 0));
     this.container.addChild(new Spacer(1));
