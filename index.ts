@@ -196,6 +196,8 @@ export default function architectureWatcher(pi: ExtensionAPI): void {
   };
 
 const refreshStatus = (ctx: ExtensionContext, watcher: WatcherState, report: Report | null): void => {
+    // Statusline is UI-only; never touch ctx.ui in a headless session (AGENTS.md §6).
+    if (!ctx.hasUI) return;
     if (!watcher.config.statusLine) return;
     if (report) {
       ctx.ui.setStatus(STATUS_KEY, formatStatus(report, {
@@ -455,6 +457,12 @@ Uloženo do ${projectConfigPath(state.root)}`,
     };
   });
 
+  // Drop the session-scoped watcher state on shutdown (AGENTS.md §5/§6);
+  // it is rebuilt lazily via ensureState() on the next session.
+  pi.on("session_shutdown", () => {
+    state = null;
+  });
+
   // --- LLM-callable tool ---------------------------------------------------
 
   pi.registerTool({
@@ -485,10 +493,9 @@ Uloženo do ${projectConfigPath(state.root)}`,
         ? params.content
         : readTextSafe(absPath);
       if (content === null) {
-        return {
-          content: [{ type: "text" as const, text: `Cannot read \`${params.path}\`.` }],
-          details: null,
-        };
+        // Throw so pi sets isError:true (AGENTS.md §2) instead of returning
+        // a value, which would leave the tool result flagged as successful.
+        throw new Error(`Cannot read \`${params.path}\`.`);
       }
       const rel = relPosix(watcher.lookup.root, absPath);
       const report = analyze(watcher, absPath, rel, content);
@@ -764,6 +771,7 @@ Uloženo do ${projectConfigPath(state.root)}`,
   pi.registerShortcut("ctrl+shift+v", {
     description: "Znovu zkontrolovat poslední upravený soubor proti VSA",
     handler: async (ctx) => {
+      if (!ctx.hasUI) return;
       const watcher = ensureState(ctx);
       if (!watcher.last) {
         ctx.ui.notify("[vsa] zatím nic neanalyzováno", "warning");
