@@ -122,6 +122,14 @@ function applyEdits(existing: string, edits: unknown): string | null {
 }
 
 export default function architectureWatcher(pi: ExtensionAPI): void {
+  /** Unsubscribers from every `pi.on()`; drained on session_shutdown (AGENTS §5). */
+  const unsubscribers: Array<() => void> = [];
+
+  /** Retain a `pi.on()` return value; older engine typings declare it void. */
+  const track = (result: unknown): void => {
+    if (typeof result === "function") unsubscribers.push(result as () => void);
+  };
+
   let state: WatcherState | null = null;
 
   const createState = (root: string): WatcherState => {
@@ -358,7 +366,7 @@ Uloženo do ${projectConfigPath(state.root)}`,
 
   // --- Pi wiring -----------------------------------------------------------
 
-  pi.on("session_start", async (_event, ctx) => {
+  track(pi.on("session_start", async (_event, ctx) => {
     state = createState(ctx.cwd);
     if (state.config.enabled && state.config.statusLine) {
       refreshStatus(ctx, state, null);
@@ -373,9 +381,9 @@ Uloženo do ${projectConfigPath(state.root)}`,
     ) {
       await showArchitectureDetectionModal(ctx, state);
     }
-  });
+  }));
 
-  pi.on("tool_call", async (event, ctx) => {
+  track(pi.on("tool_call", async (event, ctx) => {
     const watcher = ensureState(ctx);
     if (!watcher.config.enabled) return;
 
@@ -438,9 +446,9 @@ Uloženo do ${projectConfigPath(state.root)}`,
       case "block":
         return { block: true, reason: decision.reason, terminate: false };
     }
-  });
+  }));
 
-  pi.on("tool_result", async (event, ctx) => {
+  track(pi.on("tool_result", async (event, ctx) => {
     const watcher = ensureState(ctx);
     const report = watcher.pending.get(event.toolCallId);
     if (!report) return;
@@ -455,11 +463,12 @@ Uloženo do ${projectConfigPath(state.root)}`,
         text: formatInjection(report, architectureCode(watcher.config.architecture)),
       }],
     };
-  });
+  }));
 
   // Drop the session-scoped watcher state on shutdown (AGENTS.md §5/§6);
   // it is rebuilt lazily via ensureState() on the next session.
   pi.on("session_shutdown", () => {
+    while (unsubscribers.length > 0) unsubscribers.pop()?.();
     state = null;
   });
 
