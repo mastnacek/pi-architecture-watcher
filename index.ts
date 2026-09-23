@@ -228,6 +228,13 @@ async function showArchitectureDetectionModal(
   ctx: ExtensionContext,
   state: WatcherState,
 ): Promise<void> {
+  if (!ctx.hasUI || ctx.mode !== "tui") {
+    if (ctx.hasUI) {
+      ctx.ui.notify("Architektura modální okno je dostupné pouze v TUI režimu.", "warning");
+    }
+    return;
+  }
+
   let doneFn: ((result?: ModalDetectionResult) => void) | null = null;
 
   const modal = new ArchDetectModal({

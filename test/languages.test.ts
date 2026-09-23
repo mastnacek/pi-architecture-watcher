@@ -109,6 +109,8 @@ test("scan: go single and block imports", () => {
   ]);
 });
 
+const norm = (p: string | null) => (p ? p.replace(/\\/g, "/") : null);
+
 test("resolve: python relative and absolute dotted modules", () => {
   const project = makeProject({
     "src/shared/money.py": "",
@@ -117,12 +119,12 @@ test("resolve: python relative and absolute dotted modules", () => {
   });
   const from = join(project.root, "src/slices/billing/__init__.py");
   assert.equal(
-    resolveImport(edge("./invoice"), from, project.root, project.config, "python"),
-    join(project.root, "src/slices/billing/invoice.py"),
+    norm(resolveImport(edge("./invoice"), from, project.root, project.config, "python")),
+    norm(join(project.root, "src/slices/billing/invoice.py")),
   );
   assert.equal(
-    resolveImport(edge("shared.money"), from, project.root, project.config, "python"),
-    join(project.root, "src/shared/money.py"),
+    norm(resolveImport(edge("shared.money"), from, project.root, project.config, "python")),
+    norm(join(project.root, "src/shared/money.py")),
   );
 });
 
@@ -130,20 +132,20 @@ test("resolve: rust crate/self/super modules", () => {
   const project = makeProject({
     "src/main.rs": "",
     "src/features/billing/mod.rs": "",
-    "src/features/billing/invoice.rs": "",
+    "src/features/billing/receipt.rs": "",
   });
-  const from = join(project.root, "src/features/billing/invoice.rs");
+  const from = join(project.root, "src/features/billing/receipt.rs");
   assert.equal(
-    resolveImport(edge("crate::features::billing::Invoice"), from, project.root, project.config, "rust"),
-    join(project.root, "src/features/billing/mod.rs"),
+    norm(resolveImport(edge("crate::features::billing::Invoice"), from, project.root, project.config, "rust")),
+    norm(join(project.root, "src/features/billing/mod.rs")),
   );
   assert.equal(
-    resolveImport(edge("self::invoice"), from, project.root, project.config, "rust"),
-    join(project.root, "src/features/billing/invoice.rs"),
+    norm(resolveImport(edge("self::receipt"), from, project.root, project.config, "rust")),
+    norm(join(project.root, "src/features/billing/receipt.rs")),
   );
   assert.equal(
-    resolveImport(edge("super::billing::invoice"), from, project.root, project.config, "rust"),
-    join(project.root, "src/features/billing/invoice.rs"),
+    norm(resolveImport(edge("super::billing::receipt"), from, project.root, project.config, "rust")),
+    norm(join(project.root, "src/features/billing/receipt.rs")),
   );
 });
 
@@ -154,12 +156,12 @@ test("resolve: java and kotlin package paths", () => {
   });
   const fromJava = join(project.root, "src/main/java/com/example/App.java");
   assert.equal(
-    resolveImport(edge("com.example.billing.Invoice"), fromJava, project.root, project.config, "java"),
-    join(project.root, "src/main/java/com/example/billing/Invoice.java"),
+    norm(resolveImport(edge("com.example.billing.Invoice"), fromJava, project.root, project.config, "java")),
+    norm(join(project.root, "src/main/java/com/example/billing/Invoice.java")),
   );
   assert.equal(
-    resolveImport(edge("com.example.billing.Invoice"), fromJava, project.root, project.config, "kotlin"),
-    join(project.root, "src/main/kotlin/com/example/billing/Invoice.kt"),
+    norm(resolveImport(edge("com.example.billing.Invoice"), fromJava, project.root, project.config, "kotlin")),
+    norm(join(project.root, "src/main/kotlin/com/example/billing/Invoice.kt")),
   );
 });
 
@@ -169,13 +171,13 @@ test("resolve: go module path via go.mod", () => {
     "features/billing/billing.go": "",
   });
   assert.equal(
-    resolveImport(
+    norm(resolveImport(
       edge("github.com/me/proj/features/billing"),
       join(project.root, "features/audit/audit.go"),
       project.root,
       project.config,
       "go",
-    ),
-    join(project.root, "features/billing/billing.go"),
+    )),
+    norm(join(project.root, "features/billing/billing.go")),
   );
 });
