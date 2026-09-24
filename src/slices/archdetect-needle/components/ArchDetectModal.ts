@@ -16,11 +16,22 @@ import {
   SelectList,
   type SelectItem,
 } from "@earendil-works/pi-tui";
+
 import { BorderedLoader, DynamicBorder } from "@earendil-works/pi-coding-agent";
+import type { ArchitectureId } from "../../../shared/types.js";
+import {
+	title,
+	muted,
+	error,
+	dim,
+	renderProgressBar,
+	wrapText,
+} from "./modal-format.js";
+
+// Re-exported so existing consumers can keep importing from this module.
+export * from "./modal-format.js";
 
 export type DetectionEngine = "auto" | "jev" | "needle" | "compare";
-
-import type { ArchitectureId } from "../../../shared/types.js";
 
 export interface DetectionResult {
   engine: DetectionEngine;
@@ -30,8 +41,6 @@ export interface DetectionResult {
   digest: string;
   cost?: number;
 }
-
-
 
 export interface ModalCallbacks {
   onEngineSelect: (engine: DetectionEngine) => void;
@@ -47,30 +56,6 @@ type ModalState =
   | { phase: "result"; result: DetectionResult }
   | { phase: "comparison"; jev: DetectionResult | null; needle: DetectionResult | null }
   | { phase: "error"; error: string };
-
-/** Color helpers for consistent theming */
-function title(theme: any, text: string) {
-  return theme.fg("accent", theme.bold(text));
-}
-function muted(theme: any, text: string) {
-  return theme.fg("muted", text);
-}
-function error(theme: any, text: string) {
-  return theme.fg("error", text);
-}
-function dim(theme: any, text: string) {
-  return theme.fg("dim", text);
-}
-
-/** Progress bar rendering */
-function renderProgressBar(theme: any, width: number, progress: number, label: string): string {
-  const barWidth = Math.max(10, width - visibleWidth(label) - 4);
-  const filled = Math.round(barWidth * progress);
-  const empty = barWidth - filled;
-  const bar = "█".repeat(filled) + "░".repeat(empty);
-  const pct = Math.round(progress * 100);
-  return `${label} [${theme.fg("accent", bar)}] ${pct}%`;
-}
 
 /** Architecture detection modal component */
 export class ArchDetectModal implements Component {
@@ -400,22 +385,4 @@ export class ArchDetectModal implements Component {
     this.cachedLines = undefined;
     this.container.invalidate();
   }
-}
-
-/** Simple word wrap preserving ANSI codes */
-function wrapText(_theme: any, text: string, maxWidth: number): string[] {
-  const words = text.split(" ");
-  const lines: string[] = [];
-  let current = "";
-  for (const word of words) {
-    const test = current ? current + " " + word : word;
-    if (visibleWidth(test) > maxWidth) {
-      lines.push(current);
-      current = word;
-    } else {
-      current = test;
-    }
-  }
-  if (current) lines.push(current);
-  return lines;
 }
