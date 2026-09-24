@@ -102,3 +102,21 @@ test("mode shorthand and free-form arguments", () => {
   assert.equal(completeVsaArguments("check ", DEFAULT_CONFIG), null);
   assert.equal(completeVsaArguments("status ", DEFAULT_CONFIG), null);
 });
+
+test("--global prefix completions and direct setting access", () => {
+  const globalComps = completeVsaArguments("--global ", DEFAULT_CONFIG);
+  assert.ok(globalComps && globalComps.length > 0);
+  assert.ok(globalComps.some((i) => i.value === "--global mode "));
+  assert.ok(globalComps.some((i) => i.value === "--global blockAt "));
+
+  const globalMode = completeVsaArguments("--global mode ", DEFAULT_CONFIG);
+  assert.deepEqual(globalMode?.map((i) => i.value), [
+    "--global mode auto",
+    "--global mode human",
+    "--global mode off",
+  ]);
+
+  const directBlock = completeVsaArguments("blockAt ", DEFAULT_CONFIG);
+  assert.ok(directBlock && directBlock.length > 0);
+  assert.ok(directBlock.some((i) => i.value === "blockAt error"));
+});

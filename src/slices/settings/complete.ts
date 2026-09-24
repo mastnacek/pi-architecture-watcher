@@ -5,6 +5,11 @@
  * config, it returns the exact autocomplete rows Pi should render — or `null`
  * to let the built-in path completion take over. Pure: no I/O, no Pi imports,
  * no other slice.
+ *
+ * Supports:
+ *   - Direct setting keys (/vsa blockAt <tab>)
+ *   - Global prefix (/vsa --global blockAt <tab>)
+ *   - Legacy config menu (/vsa config set/get)
  */
 
 import type { WatcherConfig } from "../../shared/types.js";
@@ -23,10 +28,16 @@ interface Suggestion {
   space?: boolean;
 }
 
+const DIRECT_SETTING_SUBCOMMANDS: readonly Suggestion[] = SETTING_SPECS.map((s) => ({
+  value: s.key,
+  description: s.description,
+  space: true,
+}));
+
 export const VSA_SUBCOMMANDS: readonly Suggestion[] = [
   { value: "status", description: "Zobrazit režim, řezy, sdílené kořeny a poslední report" },
   { value: "check", description: "Analyzovat cestu k souboru proti VSA", space: true },
-  { value: "config", description: "Zobrazit nebo změnit nastavení watcheru", space: true },
+  { value: "--global", description: "Uložit následující nastavení globálně (~/.pi/agent/)", space: true },
   { value: "mode", description: "Přepnout režim brány: auto | human | off", space: true },
   { value: "rules", description: "Vypsat všechna detekční pravidla" },
   { value: "explain", description: "Znovu vypsat poslední report" },
@@ -37,6 +48,8 @@ export const VSA_SUBCOMMANDS: readonly Suggestion[] = [
   { value: "roots", description: "Najít a uložit kořeny řezů a sdílené jádro" },
   { value: "on", description: "Zapnout watcher" },
   { value: "off", description: "Vypnout watcher" },
+  ...DIRECT_SETTING_SUBCOMMANDS.filter((s) => s.value !== "mode"),
+  { value: "config", description: "Zobrazit nebo změnit nastavení watcheru (legacy)", space: true },
   { value: "help", description: "Zobrazit nápovědu" },
 ];
 
@@ -131,15 +144,45 @@ export function completeVsaArguments(
   current: WatcherConfig,
 ): SettingsCompletion[] | null {
   const normalized = prefix.trimStart();
+
+  // Support --global prefix: recurse on the clean remainder and prepend "--global "
+  if (normalized.startsWith("--global")) {
+    const afterGlobal = normalized.slice(8).trimStart();
+    const hasTrailingSpace = normalized.length > 8 || /\s$/.test(prefix);
+
+    if (!hasTrailingSpace && afterGlobal === "") {
+      return filter("", VSA_SUBCOMMANDS, normalized);
+    }
+
+    const subCompletions = completeVsaArgumentsClean(afterGlobal, current);
+    if (!subCompletions) return null;
+
+    return subCompletions.map((item) => ({
+      value: `--global ${item.value}`,
+      label: item.label,
+      description: item.description,
+    }));
+  }
+
+  return completeVsaArgumentsClean(normalized, current);
+}
+
+function completeVsaArgumentsClean(
+  normalized: string,
+  current: WatcherConfig,
+): SettingsCompletion[] | null {
   const subMatch = normalized.match(/^(\S+)\s+(.*)$/);
   if (!subMatch) return filter("", VSA_SUBCOMMANDS, normalized);
 
   const sub = subMatch[1] ?? "";
   const rest = subMatch[2] ?? "";
   if (sub === "config") return completeConfig(rest, current);
-  if (sub === "mode") {
-    const mode = findSetting("mode");
-    return mode ? completeValues("mode ", mode, current, rest) : null;
+
+  // Direct setting completions (e.g. /vsa mode <val>, /vsa blockAt <val>)
+  const directSpec = findSetting(sub);
+  if (directSpec) {
+    return completeValues(`${sub} `, directSpec, current, rest);
   }
+
   return null;
 }

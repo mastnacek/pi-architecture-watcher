@@ -179,3 +179,24 @@ export function saveProjectConfig(projectRoot: string, config: WatcherConfig): s
   writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`, "utf8");
   return path;
 }
+
+/** Persist a config to the global ~/.pi/agent/ directory. */
+export function saveGlobalConfig(config: WatcherConfig, agentDir?: string): string {
+  const path = globalConfigPath(agentDir);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+  return path;
+}
+
+/** Unified save following config-cascade contract (global if isGlobal, else project). */
+export function saveConfig(
+  config: WatcherConfig,
+  isGlobal = false,
+  projectRoot?: string,
+  agentDir?: string,
+): string {
+  if (isGlobal || !projectRoot) {
+    return saveGlobalConfig(config, agentDir);
+  }
+  return saveProjectConfig(projectRoot, config);
+}
